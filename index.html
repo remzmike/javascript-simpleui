@@ -263,7 +263,7 @@ dom renderer (no canvas)
 
                 // show/hides
                 {
-                    var panels = ['color-panel-1', 'gradient-panel-1', 'gridfont-panel-1', 'scrolltest-panel-1'];
+                    var panels = ['color-panel-1', 'gradient-panel-1', 'gridfont-panel-1i', 'scrolltest-panel-1'];
 
                     for (var i = 0; i < panels.length; i++) {
                         var uiid = panels[i];
@@ -464,7 +464,7 @@ dom renderer (no canvas)
         }
 
         function do_gridfont_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-            var inner_uiid = uiid + '-inner'
+            var inner_uiid = uiid + 'i'
             var cache = ui.get_cache(uiid, function() {
                 return {
                     'uiid' : uiid,
