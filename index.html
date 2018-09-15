@@ -464,14 +464,16 @@ dom renderer (no canvas)
         }
 
         function do_gridfont_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-            var panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
+            var inner_uiid = uiid + '-inner'
             var cache = ui.get_cache(uiid, function() {
                 return {
                     'uiid' : uiid,
-                    'run' : false,
+                    'run' : true,
                     'reset' : false
                 };
             });
+
+            var panel = do_panel_begin(inner_uiid, first_x, first_y, first_visible, first_expanded);
 
             if (panel.visible && panel.expanded)
             {
@@ -536,7 +538,7 @@ dom renderer (no canvas)
 
                 context.restore();
             }
-            do_panel_end(uiid);
+            do_panel_end(inner_uiid);
             return cache;
         }
 
@@ -575,7 +577,7 @@ dom renderer (no canvas)
             do_color_panel('color-panel-1', 250, 50, true, true);
             do_gradient_panel('gradient-panel-1', 1110, 50, true, true);
             do_scrolltest_panel('scrolltest-panel-1', 1110, 365, true, true);
-            do_gridfont_panel('gridfont-panel-1', 250, 650, true, false);            
+            do_gridfont_panel('gridfont-panel-1', 250, 650, true, true);            
         }
 
         function main() {

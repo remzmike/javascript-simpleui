@@ -6,11 +6,11 @@ var box_gradient_x1 = 112; //40;
 var box_gradient_y1 = -100; //0;
 var box_gradient_x2 = 260; //200;
 var box_gradient_y2 = 121; //240;
-var box_gradient_color_stop1 = Color(0,0,1,0); //Color(0, 0.1, 0.2, 0.2);
-var box_gradient_color_stop2 = Color(0, 204/255, 1, 0.21666666666666667); //Color(0, 0.8, 1, 0.5);
-var bg_color = Color(0.15-0.15, 0.2-0.15, 0.3-0.15);
-var panel_color1 = Color(0.1,0.15,0.25,1);
-var panel_color2 = Color(.2,.3,.4);
+var box_gradient_color_stop1 = {r: 43, g: 17, b: 74, a: 0.39166666666666666}
+var box_gradient_color_stop2 = {r: 72, g: 157, b: 210, a: 0.21666666666666667} //Color(0, 0.8, 1, 0.5);
+var bg_color = {r: 0, g: 15, b: 38, a: 1} // Color(0.15-0.15, 0.2-0.15, 0.3-0.15);
+var panel_color1 = {r: 26, g: 38, b: 64, a: 1} // Color(0.1,0.15,0.25,1);
+var panel_color2 = {r: 51, g: 77, b: 102, a: 1} // Color(.2,.3,.4);
 
 var window_active = true;
 

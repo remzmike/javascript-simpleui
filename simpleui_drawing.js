@@ -5,26 +5,21 @@ var m_simpleui_drawing = (function() {
 
         default_text_color : Color(1,1,1),
 
-        //normal_back : Color(0.4,0.6,0.8,0.3),
-        normal_back : Color(0.15, 0.25, 0.4, 1),
-        normal_face : Color(0,0,0,0.6),
-        raised_back : Color(0,0,0,1),
-        raised_face : Color(1,1,1,1),
-        hot_back : Color(0.5,1,1,1),
-        hot_face : Color(0,0.3,0.5,0.8),
-        activating_back : Color(1,1,1,1),
-        activating_face : Color(0,0.8,0.5,1),
-        //> blue > accent : Color(0.4, 0.6, 0.8, 0.3)
-        accent : Color(184/255, 91/255, 219/255, 0.508792005689588)
-        // > purple > // uidraw.accent Object {r: 184, g: 91, b: 219, a: 0.508792005689588}
+        normal_back : {r: 60, g: 79, b: 117, a: 1},
+        normal_face : {r: 0, g: 0, b: 0, a: 0.8},
+        raised_back : {r: 0, g: 0, b: 0, a: 1},
+        raised_face : {r: 185, g: 255, b: 255, a: 0.8416666666666667},
+        hot_back : {r: 0, g: 155, b: 155, a: 1},
+        hot_face : {r: 0, g: 77, b: 128, a: 0.8},
+        activating_back : {r: 255, g: 255, b: 255, a: 1},
+        activating_face : {r: 0, g: 204, b: 123, a: 1},
+        accent : {r: 121, g: 191, b: 238, a: 0.31666666666666665},
     }
 
     // > no-alpha debug mode
     if (false) {
         M.accent = Color(0.25, 0.35, 0.35, 1);
         M.activating_face = M.hot_face;
-    } else {
-        M.accent = Color(210/255, 89/255, 213/255, 0.5488494649464963);
     }
 
     M.debug = {
