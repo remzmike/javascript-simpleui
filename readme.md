@@ -2,8 +2,8 @@
 
 ![screenshot](screen.png)
 
-simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
-simpleui - v01 - 9/16/2018 1:03 PM - added webgl support
+* simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
+* simpleui - v01 - 9/16/2018 1:03 PM - added webgl support
 
 ## ABOUT
 
@@ -27,12 +27,9 @@ Where has this library been used?
     * html canvas (javascript)
 
 ## TODO
-js dependencies (prolly require or something)
 
-modularization of simpleui_ex_*, and more
-
-refactor / semantic compression
-
-nested stack auto id's
-
-dom renderer (no canvas)
+* js dependencies (prolly require or something)
+* modularization of simpleui_ex_*, and more
+* refactor / semantic compression
+* nested stack auto id's
+* dom renderer (no canvas)
