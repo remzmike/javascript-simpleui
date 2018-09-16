@@ -5,7 +5,7 @@
 * simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
 * simpleui - v01 - 9/16/2018 1:03 PM - added webgl support
 
-## ABOUT
+## About
 
 This is an "immediate-mode ui", which basically means ui components are functions.
 
@@ -13,7 +13,7 @@ This is useful because it changes the way gui applications are written and exten
 
 It is a work in progress, written in a straight-line style for easy experimentation.
 
-## History.
+## History
 
 I wrote this twice in C#, then ported to lua, then ported to this javascript.
 
@@ -26,7 +26,7 @@ Where has this library been used?
     * html webgl [pixi] (javascript)
     * html canvas (javascript)
 
-## TODO
+## Todo
 
 * js dependencies (prolly require or something)
 * modularization of simpleui_ex_*, and more
