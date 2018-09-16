@@ -1,0 +1,653 @@
+<!DOCTYPE HTML>
+<!--
+simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
+
+[ABOUT]
+this is an "immediate-mode ui", which basically means ui components are functions
+this is useful because it changes the way gui applications are written and extended
+it is a work in progress, written in a straight-line style for easy experimentation
+i wrote this in c# first, then ported it to lua, then ported to this javascript
+
+[TODO]
+js dependencies (prolly require or something)
+modularization of simpleui_ex_*, and more
+refactor / semantic compression
+nested stack auto id's
+webgl renderer
+dom renderer (no canvas)
+-->
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0">
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+        background: #222;
+        color:#999;
+      }
+    </style>
+  </head>
+  <body id=myBody>
+    <canvas id=myCanvas moz-opaque></canvas>
+    <script src="polyfill_raf.js"></script>
+    <script src="bmfont.js"></script>
+    <script src="bmfont_upfmana16.js"></script>
+    <script src="pixi.js"></script>
+    <script src="simpleui_driver_pixi.js"></script>
+    <script src="simpleui_drawing.js"></script>
+    <script src="simpleui.js"></script>
+    <script src="simpleui_ex_gridfont.js"></script>
+    <script src="simpleui_ex_scroll.js"></script>
+    <script src="simpleui_ex_panel.js"></script>
+    <script>
+        m_simpleui.config.drawbox_gradient_enable = false; // temporarily disabled for gl
+
+        // aliases
+        var ui = m_simpleui;
+        var uidraw = m_simpleui_drawing;
+        var Rectangle = uidraw.Rectangle;
+
+        var app = {};
+        app.main_loop_time = 0;
+        app.main_proc_time = 0;
+        app.main_tick = 0;
+        app.canvas_size_hack = 8;
+        app.widget5value = true;
+        app.panel_layout_padding = 2;
+    </script>
+    <script> // like a watch        
+        function do_color(key, color, label) {
+
+            var horz_layout = ui.layout_push('horizontal');
+            {
+                // base component sizes
+                var h = 24;
+                var w = h * 5;
+
+                // label & sliders
+                var color_layout = ui.layout_push('vertical');
+                {
+                    var changed;
+
+                    ui.label(key+'-label', label, Rectangle(w, h));
+
+                    // wish: multiple return values
+                    _ = ui.slider(key+'-slider-r', Rectangle(w,h), 0, 255, color.r, false, 'R');
+                    if (_.changed) { changed = true; color.r = _.value; }
+
+                    _ = ui.slider(key+'-slider-g', Rectangle(w,h), 0, 255, color.g, false, 'G');
+                    if (_.changed) { changed = true; color.g = _.value; }
+
+                    _ = ui.slider(key+'-slider-b', Rectangle(w,h), 0, 255, color.b, false, 'B');
+                    if (_.changed) { changed = true; color.b = _.value; }
+
+                    if (false) {
+                        // pass
+                    } else {
+                        _ = ui.slider(key+'-slider-a', Rectangle(w,h), 0, 1, color.a, true, 'A');
+                        if (_.changed) { changed = true; color.a = _.value; }
+                    }
+
+                }
+                ui.layout_pop();
+                
+                var pad; // swatch pad
+
+                ui.layout_push('vertical');
+                {
+                    pad = ui.layout_peek().padding; // parent pad
+                    // this increment moves the swatch down so it aligns with the sliders, not the label
+                    ui.layout_increment(Rectangle(0,h+pad));
+                    var swatch_rect = Rectangle(h*3,h*3);
+                    ui.rectangle(key+'-swatch', swatch_rect, color);
+
+                    //ui.layout_increment(Rectangle(0,0)); // this does padding
+
+                    _ = ui.button(key+'-rand-button', 'random', Rectangle(h*3, h));
+                    if (_.changed) {
+                        randomize_color(color);
+                        changed = true;
+                    }
+                }
+                ui.layout_pop();
+
+                ui.layout_increment(Rectangle(
+                    horz_layout.x-horz_layout.ox,
+                    color_layout.y-color_layout.oy-pad)
+                );
+
+            }
+            ui.layout_pop();
+
+            return {changed:changed, value:color};
+        }
+
+        function do_ms_meter(uiid, label, a_time) {
+
+            var cache = ui.get_cache(uiid, function() {
+                return {
+                    'times' : init_array(30, 0)
+                };
+            });
+            var times = cache.times;
+            times.push(a_time);
+            times.shift();
+
+            ui.label(uiid+'-label1', label, Rectangle(100,20));
+            var v = sum(times) / times.length;
+            v = Math.min(100,v);
+            ui.layout_push('horizontal');
+            ui.progressbar(uiid+'-progbar', Rectangle(100,20), 100, Math.ceil(v));
+
+            var tmp = ui.config.drawtext_enable;
+            ui.config.drawtext_enable = true;
+            {
+                ui.label(uiid+'-label2', Math.floor(v)+'ms', Rectangle(100,20));
+            }
+            ui.config.drawtext_enable = tmp;
+
+            ui.layout_pop();
+        }
+
+        function do_ms_graph(uiid, label, a_time) {
+            var cache = ui.get_cache(uiid, function() {
+                return {
+                    'times' : init_array(30, 0)
+                };
+            });
+            var times = cache.times;
+            times.push(a_time);
+            times.shift();
+
+            var graph_height = 20;
+            ui.label(uiid + '-label', label, Rectangle(100,20));
+            ui.layout_push('horizontal', 0);
+            for (var i=0; i < times.length; i++) {
+                var v = times[i];
+                v = Math.min(graph_height,v);
+                ui.rectangle(uiid + '-rect-' + i, Rectangle(4,Math.floor(v)), Color(1,1,1,0.2));
+            }
+            ui.layout_increment(Rectangle(0,graph_height));
+            ui.layout_pop();
+        }
+
+        function do_sidepanel() {
+            var pad = 8;
+            var none1 = ui.layout_push('none', 0, 0);
+            var vert1 = ui.layout_push('vertical', pad, 0, 0);
+            {
+                var rect = Rectangle(200,canvas.height);
+                var rect2 = uidraw.rectangle_erode(rect, 2);
+
+                ui.rectangle('sidepanel-main-panel-back', rect, panel_color1);
+                ui.rectangle('sidepanel-main-panel-face', rect2, panel_color2);
+                ui.layout_peek().x = none1.x + pad;
+                ui.layout_peek().y = pad;
+                //layout_undo(); // todo: function to do this ^ or layout_reset()?
+
+                // reload
+                _ = ui.button('sidepanel-reload-button', 'reload', Rectangle(100,20));
+                if (_.changed) {
+                    document.location.reload(true);
+                }
+
+                // padding
+                ui.label('sidepanel-padding-label', 'padding', Rectangle(100,20));
+                _ = ui.slider('sidepanel-padding-slider', Rectangle(100,20), 0, 12, app.panel_layout_padding);
+                if (_.changed) {
+                    app.panel_layout_padding = _.value;
+                }
+
+                // mouse status :->
+                {
+                    var w = 180; // max-width
+                    
+                    var aspect = canvas.width / canvas.height;
+                    var h = w / aspect;
+                    
+                    if (h > 100) { // max-height
+                        w = w * 100 / h;
+                        h = 100;                        
+                    }
+
+                    ui.label('sidepanel-mouse-radar-label', 'mouse status', Rectangle(100,20));
+                    
+                    var prev_x = ui.layout_peek().x;
+                    var prev_y = ui.layout_peek().y;                    
+                    
+                    ui.rectangle('sidepanel-mouse-radar', Rectangle(w, h), uidraw.normal_back);
+
+                    var radar_cursor_pos_x = (_mouse_pos.x / canvas.width) * w;
+                    var radar_cursor_pos_y = (_mouse_pos.y / canvas.height) * w / aspect;
+                    var cursor_size = 4;
+                    if (ui.state.leftheld) {
+                        cursor_size = 8;
+                    }
+                    radar_cursor_pos_x -= cursor_size / 2;
+                    radar_cursor_pos_y -= cursor_size / 2;
+   
+                    ui.layout_push('none');
+                    ui.rectangle(
+                        'sidepanel-mouse-radar-cursor',
+                        Rectangle(prev_x + radar_cursor_pos_x, prev_y + radar_cursor_pos_y, cursor_size, cursor_size),
+                        uidraw.hot_back
+                    );
+                    ui.layout_pop();
+                }
+
+                // cpu (not reasonably possible in js)
+                {
+                }
+
+                // memory
+                {
+                }
+
+                // frame times + graph
+                do_ms_meter('sidepanel-ms-meter', 'frame time', app.main_loop_time);
+                do_ms_graph('sidepanel-frame-graph', 'frame graph', app.main_loop_time);
+
+                // actual times + graph
+                do_ms_meter('sidepanel-actual-meter', 'cpu time per frame', app.main_proc_time);
+                do_ms_graph('sidepanel-actual-graph', 'cpu time graph', app.main_proc_time);
+
+                // canvas size hack
+                ui.label('sidepanel-canvas-size-hack-label', 'canvas size hack', Rectangle(100,20));
+                ui.layout_push('horizontal');
+                _ = ui.slider('sidepanel-canvas-size-hack-slider', Rectangle(100,20), 0, 60, app.canvas_size_hack);
+                if (_.changed) {
+                    app.canvas_size_hack = _.value;
+                    set_size();
+                }
+                ui.label('sidepanel-canvas-size-hack-slider-label', app.canvas_size_hack+'px', Rectangle(100,20));
+                ui.layout_pop();
+
+                // show/hides
+                {
+                    var panels = ['color-panel-1', 'gradient-panel-1', 'gridfont-panel-1i', 'scrolltest-panel-1'];
+
+                    for (var i = 0; i < panels.length; i++) {
+                        var uiid = panels[i];
+                        var panel = ui.get_cache(uiid);
+                        _ = ui.checkbutton('sidepanel-toggle-'+uiid, 'show '+uiid, Rectangle(180,20), panel && panel.visible);
+                        if (_.changed) {
+                            panel.visible = !panel.visible;
+                        }
+                    }
+                }
+
+                // misc
+                if (false) {
+                    ui.label('misc-pixelratio', 'pixel ratio: ' + window.devicePixelRatio, Rectangle(100,20));
+                    var memory = performance.memory;
+                    if (memory) {
+                        var mem1 = memory.usedJSHeapSize / (1024*1024);
+                        var mem2 = memory.jsHeapSizeLimit / (1024*1024);
+                        ui.label('misc-memory-1', 'mem1: ' + round(mem1) + 'MB', Rectangle(100,20));
+                        ui.label('misc-memory-2', 'mem2: ' + round(mem2) + 'MB', Rectangle(100,20));
+                        ui.label('misc-count-point', 'Points: ' + uidraw.debug.count_Point, Rectangle(100,20));
+                        ui.label('misc-count-rectangle', 'Rectangles: ' + uidraw.debug.count_Rectangle, Rectangle(100,20));
+                    }
+                }
+
+                // flags
+                {
+                    // editor help for function arguments needs some revamping
+                    _ = ui.button('button-rtc', 'reset text cache', Rectangle(150,20));
+                    if (_.changed) _drawtext_cache = {};
+                    
+                    _ = ui.button('button-rbc', 'reset box cache', Rectangle(150,20));
+                    if (_.changed) _drawbox_cache = {};
+
+                    ui.layout_push('horizontal');
+                    {
+                        _ = ui.checkbox('ui.config.drawtext_bitmap checkbox',
+                                        Rectangle(20,20), ui.config.drawtext_bitmap);
+                        if (_.changed) {
+                            ui.config.drawtext_bitmap = !ui.config.drawtext_bitmap;
+                        }
+                        ui.label('drawtext stroke/bitmap label', 'drawtext bitmap', Rectangle(100,20));
+                    }
+                    ui.layout_pop();
+
+                    ui.layout_push('horizontal');
+                    {
+                        _ = ui.checkbox('ui.config.drawhotspots_enable checkbox',
+                                        Rectangle(20,20), ui.config.drawhotspots_enable); // todo: move this var to ui.config.
+                        if (_.changed) {
+                            ui.config.drawhotspots_enable = _.value;
+                        }
+                        ui.label('ui.config.drawhotspots_enable label', 'draw hotspots', Rectangle(100,20));
+                    }
+                    ui.layout_pop();
+
+                    ui.layout_push('horizontal');
+                    {
+                        _ = ui.checkbox('ui.config.drawtext_enable checkbox',
+                            Rectangle(20,20), ui.config.drawtext_enable);
+                        if (_.changed) {
+                            ui.config.drawtext_enable = _.value;
+                        }
+                        ui.label('ui.config.drawtext_enable label', 'draw text', Rectangle(100,20));
+                    }
+                    ui.layout_pop();
+
+                    ui.layout_push('horizontal');
+                    {
+                        _ = ui.checkbox('ui.config.drawbox_gradient', Rectangle(20,20), ui.config.drawbox_gradient_enable);
+                        if (_.changed) {
+                            ui.config.drawbox_gradient_enable = _.value
+                        }
+                        ui.label('ui.config.drawbox_gradient_enable label', 'drawbox gradient', Rectangle(100,20));
+                    }
+                    ui.layout_pop();
+
+                    ui.layout_push('horizontal');
+                    {
+                        _ = ui.checkbox('ui.config.drawbox_soft_enable', Rectangle(20,20), ui.config.drawbox_soft_enable);
+                        if (_.changed) {
+                            ui.config.drawbox_soft_enable = _.value;
+                        }
+                        ui.label('ui.config.drawbox_soft_enable label', 'drawbox soft', Rectangle(100,20));
+                    }
+                    ui.layout_pop();
+                }
+
+            }
+            ui.layout_pop();
+            ui.layout_pop();
+
+        }
+
+        function do_color_row(obj, keys) {
+            for (var i=0; i < keys.length; i++) {
+                var k = keys[i];
+                _ = do_color('color_'+k, obj[k], k);
+                if (_.changed) {
+                    obj[k] = _.value;
+                }
+            }
+        }
+
+        function do_color_panel(uiid, first_x, first_y, first_visible, first_expanded) {
+            var panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
+            if (panel.visible && panel.expanded)
+            {
+                // row 1
+                ui.layout_push('horizontal')
+                {
+                    do_color_row(uidraw, ['accent']);
+                    do_color_row(window, ['bg_color', 'panel_color1', 'panel_color2']);
+                }
+                ui.layout_pop();
+
+                // row 2
+                ui.layout_push('horizontal')
+                do_color_row(uidraw, ['normal_back', 'raised_back', 'hot_back', 'activating_back']);
+                ui.layout_pop();
+
+                // row 3
+                ui.layout_push('horizontal')
+                do_color_row(uidraw, ['normal_face', 'raised_face', 'hot_face', 'activating_face']);
+                ui.layout_pop();
+
+                ui.label('color-panel-label-previews', '-additional control previews-', Rectangle(100,60));
+
+                _ = ui.button('2', 'this is a button', Rectangle(100,20));
+                if (_.changed) {
+                    log('[button clicked]');
+                }
+
+                ui.layout_push('horizontal');
+                {
+                    _ = ui.checkbutton('5', 'checkbutton', Rectangle(100,20), app.widget5value);
+                    if (_.changed) {
+                        app.widget5value = _.value;
+                    }
+
+                    _ = ui.checkbox('6', Rectangle(20,20), app.widget5value);
+                    if (_.changed) {
+                        app.widget5value = _.value;
+                    }
+                }
+                ui.layout_pop();
+
+
+            }
+            do_panel_end(uiid);
+
+        }
+
+        function do_gradient_panel(uiid, first_x, first_y, first_visible, first_expanded) {
+            var panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
+            if (panel.visible && panel.expanded)
+            {
+                var changed = false;
+
+                _ = ui.slider('grad-panel-slider-x1', Rectangle(100,20), 0, 400, box_gradient_x1);
+                changed |= _.changed;
+                if (_.changed) box_gradient_x1 = _.value;
+
+                _ = ui.slider('grad-panel-slider-y1', Rectangle(100,20), -100, 300, box_gradient_y1);
+                changed |= _.changed;
+                if (_.changed) box_gradient_y1 = _.value;
+
+                _ = ui.slider('grad-panel-slider-x2', Rectangle(100,20), 0, 400, box_gradient_x2);
+                changed |= _.changed;
+                if (_.changed) box_gradient_x2 = _.value;
+
+                _ = ui.slider('grad-panel-slider-y2', Rectangle(100,20), 1, 1000, box_gradient_y2);
+                changed |= _.changed;
+                if (_.changed) box_gradient_y2 = _.value;
+
+                ui.layout_push('horizontal');
+                {
+                    _ = do_color('box_gradient_color_stop1', box_gradient_color_stop1, 'stop1 color');
+                    changed |= _.changed;
+
+                    _ = do_color('box_gradient_color_stop2', box_gradient_color_stop2, 'stop2 color');
+                    changed |= _.changed;
+                }
+                ui.layout_pop();
+
+                if (changed) {
+                    var grd = make_drawbox_gradient(
+                        context,
+                        box_gradient_x1, box_gradient_y1,
+                        box_gradient_x2, box_gradient_y2,
+                        box_gradient_color_stop1,
+                        box_gradient_color_stop2
+                    );
+                    m_simpleui.config.drawbox_gradient = grd;
+                }
+            }
+            do_panel_end(uiid);
+        }
+
+        function do_gridfont_panel(uiid, first_x, first_y, first_visible, first_expanded) {
+            var inner_uiid = uiid + 'i'
+            var cache = ui.get_cache(uiid, function() {
+                return {
+                    'uiid' : uiid,
+                    'run' : true,
+                    'reset' : false
+                };
+            });
+
+            var panel = do_panel_begin(inner_uiid, first_x, first_y, first_visible, first_expanded);
+
+            if (panel.visible && panel.expanded)
+            {
+
+                var button = ui.button(uiid+'-test-button', 'gridfont '+(cache.run?'stop':'run'), Rectangle(150, 20));
+                if (button.changed) {
+                    cache.run = !cache.run;
+                }
+
+                var button2 = ui.button(uiid+'-test-button2', 'gridfont reset', Rectangle(150, 20));
+                if (button2.changed) {
+                    cache.reset = true;
+                }
+
+                context.save();
+                context.translate(0.5,0);
+
+                var rect = Rectangle(0, 0);
+                ui.layout_translate(rect);
+
+                var complete = cache.run && true;
+                var reset_complete = cache.reset && true;
+                if (cache.run) {
+                    context.save();
+                    /*var modes = [
+                        'source-over', 'source-in', 'source-out', 'source-atop',
+                        'destination-over', 'destination-in', 'destination-out', 'destination-atop',
+                        'lighter', 'copy', 'xor', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
+                        'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion',
+                        'hue', 'saturation', 'color', 'luminosity'
+                    ];*/
+                    //var prev = context.globalCompositeOperation;
+                    //context.globalCompositeOperation = modes[6];
+
+                    _ = do_gridfont(uiid+'-gridfont1', 'welcome to the jungle', 'hint-four', rect.x, rect.y, 10, cache.reset);
+                    complete = complete && _.complete;
+                    reset_complete = reset_complete && _.reset_complete;
+                    if (_.complete || (cache.reset && _.reset_complete)) {
+                        _ = do_gridfont(uiid+'-gridfont2', 'we got fun and games', 'hint-four', rect.x, rect.y+10*10, 10, cache.reset);
+                        complete = complete && _.complete;
+                        reset_complete = reset_complete && _.reset_complete;
+                        if (_.complete || (cache.reset && _.reset_complete)) {
+                            _ = do_gridfont(uiid+'-gridfont3', 'we got everything you want', 'hint-four', rect.x, rect.y+20*10, 10, cache.reset);
+                            complete = complete && _.complete;
+                            reset_complete = reset_complete && _.reset_complete;
+                        }
+                    }
+                    //context.globalCompositeOperation = prev;
+                    context.restore();
+                }
+
+                if (reset_complete) {
+                    cache.reset = false;
+                }
+
+                if (complete) {
+                    cache.reset = true;
+                }
+
+                var layout = ui.layout_peek();
+                ui.layout_increment(Rectangle(800, 10*7*3 + 200));
+
+                context.restore();
+            }
+            do_panel_end(inner_uiid);
+            return cache;
+        }
+
+        function do_scrolltest_panel(uiid, first_x, first_y, first_visible, first_expanded) {
+            
+            var panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
+
+            if (panel.visible && panel.expanded) {
+
+                // todo: design so that when i remove the scroll widget, the contained widgets will just render as usual
+                var scroll_uiid = 'scrolltest';
+                var scroll = do_scroll_begin(scroll_uiid, Rectangle(panel.rect.x, panel.rect.y, 200, 200), 20, 100000);
+
+                // todo:
+                // maybe an opt-in api for widgets to call to see if they are... "in view"
+                // if (!in_view(uiid)) { return null; } // or something
+                // or maybe something like this...
+                // while (var item = get_visible_item(scroll_uiid)) {
+                //
+                // }
+                for (var i = scroll.first_visible_index; i < scroll.last_visible_index; i++) {
+                    do_scroll_item_begin(scroll_uiid, i);
+                    _ = ui.button('scroll-experiment-button-'+i, 'button #'+i, Rectangle(200,20));
+                    if (_.changed) console.log('clicked #' + i);
+                    do_scroll_item_end(scroll_uiid);
+                }
+
+                do_scroll_end(scroll_uiid);            
+            }
+            do_panel_end(uiid);
+            return panel;
+        }
+
+        function do_ui() {
+            do_sidepanel();
+            do_color_panel('color-panel-1', 250, 50, true, true);
+            do_gradient_panel('gradient-panel-1', 1110, 50, true, true);
+            do_scrolltest_panel('scrolltest-panel-1', 1110, 365, true, true);
+            do_gridfont_panel('gridfont-panel-1', 250, 650, true, true);            
+        }
+
+        function main() {
+            window.requestAnimationFrame(main); // schedule next frame immediately
+
+            var proc_start = util.now();
+
+            if (window_active) {
+                // clear
+                context.beginPath();
+                context.fillStyle = make_css_color(bg_color);
+                context.rect(0, 0, canvas.width, canvas.height);
+                context.fill();
+                context.closePath();
+            } else  {
+                //context.fillStyle = "rgba(60,60,50,1)";
+            }
+            
+            if (window_active) {
+                ui.tick(do_ui);
+                ui.on_tick();
+            } else {
+                // later: ("click to enable") message/indicator or something
+            }
+
+            var proc_end = util.now();
+            app.main_proc_time = proc_end-proc_start;
+
+            var now = util.now();
+            // later: ringbuffer.
+            app.main_loop_time = now - app.main_tick;
+            app.main_tick = now;
+
+            uidraw.debug.count_Point = 0;
+            uidraw.debug.count_Rectangle= 0;
+        }
+
+        // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers
+        
+        window.onload = function() {
+            // focus/blur seems to be hardcore junk in both ff and ch
+            window.onfocus = function() {
+                window_active = true;
+                // todo: implement a pause call in simpleui, invert this logic, then just turn on/off pause directly here...
+                log('[window.onfocus]', window_active);
+            };
+            window.onblur = function() {
+                window_active = false;
+                log('[window.onblur]', window_active);
+            };
+            window.onresize = function() {
+                // meh
+            }
+            set_size();        
+
+            window.bmfont_mana = parseBMFontAscii(__bmfonts_upfmana16);
+            window.bmfont_mana_img = new Image(512,512);
+
+            // lol... hax for now
+            window.bmfont_mana_img.onload = function() {
+                window.requestAnimationFrame(main); // schedule first frame
+                app.main_tick = util.now();                            
+            };
+            
+            window.bmfont_mana_img.src = 'upfmana16_0.png';
+        };        
+    </script>
+
+  </body>
+</html>
