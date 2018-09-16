@@ -33,3 +33,5 @@ Where has this library been used?
 * refactor / semantic compression
 * nested stack auto id's
 * dom renderer (no canvas)
+
+See also: https://github.com/remzmike/lua-simpleui
