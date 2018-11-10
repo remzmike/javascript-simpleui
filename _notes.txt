@@ -1,0 +1,60 @@
+[links]
+https://www.sitepoint.com/es6-babel-webpack/
+https://github.com/babel/awesome-babel
+https://flaviocopes.com/es-modules/
+	https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/
+
+CODE SAMPLES of jit optimization scenarios
+	https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JIT_Optimization_Strategies
+
+--
+
+
+i think driver should handle batching
+so internal still just does normal box/text calls
+and driver decides what to do... batch or immediate
+
+if driver decides to batch (which im not doing yet)
+then i will need a way to tell the driver when to draw
+or...
+
+
+	driver is really "driver" and
+	it will do the LOOP...
+
+		this might be interesting...
+		because it makes more reusable?
+
+		so then simpleui is legit a library that gets used
+		by say a pixi app or a canvas app or an app written to be both and use simpleui
+		and the app decides how to deal with "frame rate" (0.1 fps to 100+ fps)
+
+
+that tangent is crazy
+
+
+--
+
+babel opt
+
+1)
+https://github.com/codemix/babel-plugin-closure-elimination
+npm install --save-dev babel-plugin-closure-elimination
+{
+  "plugins": ["closure-elimination"]
+}
+
+
+2)
+https://github.com/betaorbust/babel-plugin-groundskeeper-willie
+npm install --save-dev babel-plugin-groundskeeper-willie
+
+3)
+https://github.com/vzhou842/faster.js
+npm install --save-dev faster.js
+"plugins":"module:faster.js"
+
+4)
+https://github.com/vihanb/babel-plugin-loop-optimizer
+npm install babel-plugin-loop-optimizer
+"plugins": ["babel-plugin-loop-optimizer"]

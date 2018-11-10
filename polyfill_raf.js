@@ -10,7 +10,7 @@
 
     if (!window.requestAnimationFrame)
         window.requestAnimationFrame = function(callback, element) {
-            var currTime = util.now(); // kk
+            var currTime = performance.now(); // kk
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
             var id = window.setTimeout(function() { callback(currTime + timeToCall); },
               timeToCall);

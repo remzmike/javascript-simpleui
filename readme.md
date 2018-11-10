@@ -4,6 +4,7 @@
 
 * simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
 * simpleui - v01 - 9/16/2018 1:03 PM - added webgl support
+* simpleui - v02 - 11/10/2018 4:14 PM - broad refactoring
 
 ## About
 
@@ -19,17 +20,15 @@ I wrote this twice in C#, then ported to lua, then ported to this javascript.
 
 Where has this library been used?
 
-    * XNA (C#)
-    * Mono GTK [cairo] (C#)
-    * leaguebot (lua)
-    * love2d (lua)
-    * html webgl [pixi] (javascript)
-    * html canvas (javascript)
+    * XNA (C#) (2008)
+    * Mono GTK [cairo] (C#) (2012)
+    * leaguebot (lua) (2014)
+    * love2d (lua) (2015)    
+    * html canvas (javascript) (2016)
+    * html webgl [pixi] (javascript) (2018)
 
 ## Todo
 
-* js dependencies (prolly require or something)
-* modularization of simpleui_ex_*, and more
 * refactor / semantic compression
 * nested stack auto id's
 * dom renderer (no canvas)

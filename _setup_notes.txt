@@ -1,0 +1,324 @@
+[setup notes]
+
+following this (#10 google result, #1 quite bad, 2-9 not broad enough)
+	https://www.sitepoint.com/es6-babel-webpack/
+but making modifications (eg. dont override default browserslist)
+
+npm init -y
+npm install babel-cli babel-preset-env --save-dev
+
+modify package.json
+
+"scripts": {
+  "build": "babel src -d public"
+},
+
+create .babelrc
+
+{
+  "presets": [
+    [
+      "env",
+      {
+      }
+    ]
+  ]
+}
+
+NOTE: don't change targets
+https://github.com/browserslist/browserslist#best-practices
+https://github.com/browserslist/browserslist/pull/254/commits/560100ce358bf9aaf6b1f43a0e020399c1b
+...
+
+made a sample file (eg. leftpad.js from original article)
+
+ran this and verified the output in public/src/
+
+	npm run build
+
+created src/js/index.js
+
+	import leftPad from './leftpad';
+
+	const serNos = [6934, 23111, 23114, 1001, 211161];
+	const strSNos = serNos.map(sn => leftPad(sn, 8, '0'));
+	console.log(strSNos);
+
+do build again and verified output
+
+	npm run build
+
+install webpack local
+
+	npm install webpack webpack-cli --save-dev
+
+add this to package.json "scripts" section
+
+
+	"build": "webpack --config webpack.config.js"
+
+renamed existing babel build to "build-babel"
+
+	"build-babel": "babel src -d public",
+	"build": "webpack --config webpack.config.js",
+
+
+create webpack.config.js
+
+    const path = require("path");
+
+    module.exports = {
+      mode: 'development',
+      entry: "./src/js/index.js",
+      output: {
+        path: path.resolve(__dirname, "public"),
+        filename: "bundle.js"
+      }
+    };
+
+delete old public/js dir and run build again
+
+	npm run build
+
+it creates public/bundle.js now
+
+add transpiling support (ie. babel core and babel loader (webpack) support)
+
+	npm install babel-loader babel-core --save-dev
+
+modify webpack.config.js adding module section after output section
+
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /(node_modules)/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["babel-preset-env"]
+          }
+        }
+      }
+    ]
+  }
+
+then build again
+
+	npm run build
+
+gives me an error, maybe got some wrong version, babel docs show this
+
+	npm install --save-dev babel-loader @babel/core
+
+ok so i exec the above command and it changes package.json devDependencies
+then i guess i need to uninstall the old key "babel-core"
+
+	npm uninstall babel-core
+
+which modifies package.json devDependencies again as now expected
+
+and i run build again and get a crazy error:
+
+	TypeError: Cannot read property 'bindings' of null
+
+googling finds some github thread talking about babel 6 vs 7 compat problems
+which makes complete sense based on the above ~20 lines
+so, yeah... blagh, i gotta figure out what @ means in npm packages
+
+oh the @ is some kind of official scoping thing
+
+	https://docs.npmjs.com/getting-started/scoped-packages
+
+like i would literally have to pay money to publish scoped packages under @remzmike/my-library
+but i can publish packages named remzmike/my-library for free/normal?
+
+googling : "should i use babel 6 or 7"
+(answer: inconclusive, gonna just try to make 7 work)
+
+doing this:
+	
+	npm uninstall babel-preset-env
+	npm install @babel/preset-env --save-dev
+
+
+changing .babelrc to:
+
+	{
+	  "presets": ["@babel/preset-env"]
+	}
+
+build still fails, same error
+
+in webpack.config.js, change this line:
+	presets: ["babel-preset-env"]
+to this:
+	presets: ["@babel/preset-env"]	
+
+then `npm run build` again AND IT FINALLY WORKS
+
+now creating html file, bundle.html
+
+    <!DOCTYPE html>
+    <html>
+      <head lang="en">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Webpack & Babel Demonstration</title>
+      </head>
+      <body>
+        <main>
+          <h1>Parts List</h1>
+          <ol id="part-list"></ol>
+        </main>
+        <script src="./public/js/bundle.js" charset="utf-8"></script>
+      </body>
+    </html>
+
+modify src/js/index.js to be:
+
+    import leftPad from './leftpad';
+
+    const serNos = [6934, 23111, 23114, 1001, 211161];
+    const partEl = document.getElementById('part-list');
+    const strList = serNos.reduce(
+    (acc, element) => acc += `<li>${leftPad(element, 8, '0')}</li>`, ''
+    );
+
+    partEl.innerHTML = strList;
+
+derk, the bundle file is at /public/bundle.js and html says public/js/bundle.js
+
+so, modify the html so it says /public/bundle.js
+
+and now visit bundle.html in browser
+
+and it's a webpack javascript error wee hoo, we killin this
+
+...intermission...
+
+looking at dependency versions
+	
+	webpack 4.22 is latest, now reading webpack docs
+
+		changing webpack.config.js "public" output path to "dist" since i like that and know it
+		leaving the package.json "build-babel" to use a dir called "public"
+			actually just gonna comment that one for now...
+		also changed bundle.html to point to dist instead of public
+
+	@babel/core 7.1.2 confirmed as latest
+	@babel/preset-env 7.1.0 confirmed as latest
+	babel-cli 6.26 is latest but @babel/cli is 7.1.2
+		i think this is a 6 vs 7 indicator (if not coincidence)
+		gonna uninstall this babel-cli i guess... and install the other
+
+		npm install @babel/cli --save-dev
+
+	newly added @babel/cli 7.1.2 confirmed as latest
+	
+	babel-loader 8.04 confirmed as latest for babel(v7)
+	
+		"This README is for babel-loader v8 + Babel v7 Check the 7.x branch for docs with Babel v6"
+		so it looks like the babel-loader versions are one higher than the version of babel, BLECH
+
+	webpack-cli 3.1.2 confirmed as latest
+
+building again fails... but i think i found the problem...
+
+	npm run build
+
+holy shit oops, leftpad.js didn't have export, adding this to function def
+
+	export default, so it becomes:
+	export default function leftPad(str, len, ch) {
+
+build again
+
+	npm run build
+	
+FINALLY! the leftpad sample works
+
+add watch support, in package.json scripts section
+
+	"watch": "webpack --watch"
+
+then `npm run watch` to verify, and ctrl-c cancel
+
+now setup dev server for magic refresh
+
+	npm install webpack-dev-server --save-dev
+
+add this script... (consider rename for later)
+
+	"start": "webpack --watch & webpack-dev-server --open-page 'webpack-dev-server'"
+	(with no stupid trailing comma)
+	... ermm that's a unix &, so...
+	changing the line to:
+	"dev": "webpack-dev-server --open-page bundle.html"
+
+and run it
+
+	npm run dev
+
+error in browser
+
+	"Uncaught Error: Cannot find module 'fs'"
+
+googling...
+
+i guess i'll just read more webpack info about the "module" section in webpack.config.js
+
+seems fine, will try to verify babel-loader rule
+
+this page shows babel 6 vs babel 7 package combos:
+	https://www.npmjs.com/package/babel-loader
+	--
+	webpack 4.x | babel-loader 8.x | babel 7.x
+	npm install -D babel-loader @babel/core @babel/preset-env webpack
+	vs.
+
+	webpack 4.x | babel-loader 7.x | babel 6.x
+	npm install -D babel-loader@7 babel-core babel-preset-env webpack
+
+verified that i am using the right packages for babel 7 (babel-loader 8)
+ok, so .babelrc can be used to set presets (and other config) instead of as module.rules[i].use.options section in webpack.config.js
+
+so i got rid of the rules[0].use section and added a rules[0].loader section
+
+	loader: "babel-loader",
+
+and i verified .babelrc
+
+`npm run dev` again and it's the same 'fs' browser error
+
+	Uncaught Error: Cannot find module 'fs'
+	(it's being thrown from Server.js but appears hardcoded)
+
+at this point i don't know where the code is that throws this error
+is it some magicompiled thing called Server.js on the client?
+so i guess let's just ignore a web server for now
+	since this code should work without one anyway
+	it's flippin simpleui after all, not a server app
+
+same error when visiting via file:///
+
+why is webpack-dev-server code in my bundle anyway?
+i mean, im not supposed to have an fs module in the browser anyway am i???
+
+i mean, i guess read some setup info on webpack-dev-server now (nevermind)
+
+SOLVED, forgot to re-build somewhere along the line since i wasn't running watch
+
+	npm run build
+
+verified it works, by visiting file:///
+
+now just use
+
+	npm run watch
+
+and it will generate what i need... should be done now right?
+dare i try to do this again? maybe next time i need to i just refine this doc
+
+end @ 4:25 PM 10/21/2018

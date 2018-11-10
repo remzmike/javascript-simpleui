@@ -1,0 +1,13 @@
+C:\android-platform-tools>adb kill-server
+
+C:\android-platform-tools>adb start-server
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+
+C:\android-platform-tools>adb devices
+List of devices attached
+92011d5628032433        device
+
+---
+
+Now you should be able to connect with Desktop Chrome's dev tools.

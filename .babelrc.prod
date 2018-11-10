@@ -1,0 +1,26 @@
+{
+  "presets": ["@babel/preset-env"],
+  "plugins": [
+    "closure-elimination",
+    [
+      "groundskeeper-willie",
+      {
+          "removeConsole":  true,
+          "removeDebugger": true,
+          "removePragma":   true
+      }
+    ],
+    "module:faster.js",
+    "babel-plugin-loop-optimizer",
+    "minify-constant-folding",
+    "tailcall-optimization",
+    [
+      "transform-named-imports",
+      {
+        "webpackConfig": "./webpack.config.js",
+        "webpackConfigIndex": 0
+      }
+    ]    
+  ]
+
+}
