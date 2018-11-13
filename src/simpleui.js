@@ -672,21 +672,21 @@ function do_checkbutton(uiid, text, local_rect, value, text_offset_x, text_offse
 }
 
 // you can drag it around, anywhere.
-let _handle_delta_x = 0 | 0;
-let _handle_delta_y = 0 | 0;
-function do_handle(uiid, local_rect, value1, value2) {
+let _g_handle_delta_x = 0 | 0;
+let _g_handle_delta_y = 0 | 0;
+function do_handle(uiid, local_rect, x1, y1) {
     m_v8.assert_smi(local_rect[_x]);
     m_v8.assert_smi(local_rect[_y]);
     m_v8.assert_smi(local_rect[_w]);
     m_v8.assert_smi(local_rect[_h]);
-    m_v8.assert_smi(value1);
-    m_v8.assert_smi(value2);
+    m_v8.assert_smi(x1);
+    m_v8.assert_smi(y1);
     console.assert(local_rect.length == 4);
     console.assert(uiid != '', 'id cannot be blank');
     console.assert(local_rect != null, 'local_rect cannot be null');
 
-    value1 = 0 | value1;
-    value2 = 0 | value2;
+    x1 = 0 | x1;
+    y1 = 0 | y1;
 
     let changed = 0 | false;
 
@@ -694,8 +694,8 @@ function do_handle(uiid, local_rect, value1, value2) {
     add_hotspot(uiid, rect);
 
     if (uistate.item_went_down == uiid) {
-        _handle_delta_x = 0 | (uistate.mouselocation[_x] - value1);
-        _handle_delta_y = 0 | (uistate.mouselocation[_y] - value2);
+        _g_handle_delta_x = 0 | (uistate.mouselocation[_x] - x1);
+        _g_handle_delta_y = 0 | (uistate.mouselocation[_y] - y1);
     }
 
     if (uistate.item_held == uiid) {
@@ -704,19 +704,17 @@ function do_handle(uiid, local_rect, value1, value2) {
         //let v = round(mousepos * max / i, 0)
         //if (v != value) then
         changed = 0 | true;
-        value1 = 0 | (uistate.mouselocation[_x] - _handle_delta_x);
-        value2 = 0 | (uistate.mouselocation[_y] - _handle_delta_y);
+        x1 = 0 | (uistate.mouselocation[_x] - _g_handle_delta_x);
+        y1 = 0 | (uistate.mouselocation[_y] - _g_handle_delta_y);
         //end
     }
-    //draw.text('x',uistate.mouselocation[_x]-5,uistate.mouselocation[_y]-5,0xffff0000)
 
-    // todo: just pass uistate?
     let state = calc_drawstate(uiid);
 
     draw.handle(uiid, rect, state);
     layout_increment(rect);
 
-    return [0 | changed, 0 | value1, 0 | value2]; // ..., delta_x, delta_y
+    return [0 | changed, 0 | x1, 0 | y1];
 }
 
 export {

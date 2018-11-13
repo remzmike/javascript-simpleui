@@ -1,18 +1,18 @@
 let round = Math.round;
 
-var box_gradient_x1 = 40;
-var box_gradient_y1 = 0;
-var box_gradient_x2 = 260;
-var box_gradient_y2 = 121;
-var box_gradient_color_stop1 = Color(72, 157, 210, 55);
-var box_gradient_color_stop2 = Color(15, 15, 76, 100);
+var box_gradient_x1 = 7;
+var box_gradient_y1 = 18;
+var box_gradient_x2 = 3;
+var box_gradient_y2 = -32;
+var box_gradient_color_stop1 = Color(0, 30, 76, 92);
+var box_gradient_color_stop2 = Color(72, 157, 210, 92);
 var bg_color = Color(0, 15, 38, 255);
 var panel_color1 = Color(26, 38, 64, 255);
 var panel_color2 = Color(51, 77, 102, 255);
 
 var window_active = true;
 
-let _mouse_pos = [0 | 0, 0 | 0]; //m_simpleui.Point(0, 0);
+let _mouse_pos = [0 | 0, 0 | 0];
 
 function init_array(size, init_val) {
     let a = [];
@@ -32,7 +32,8 @@ function set_size() {
 }
 
 function randomize_color(color) {
-    let a = [_r, _g, _b, _a];    
+    //let a = [_r, _g, _b, _a];    
+    let a = [_r, _g, _b];
     for (let i = 0; i < a.length; i++) {
         let k = a[i];
         let v;

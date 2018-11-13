@@ -3,15 +3,15 @@ import { Rectangle, Point } from './simpleui.js';
 
 export let font_size = GetFontSize();
 export let default_text_color = Color(255, 255, 255, 255);
-export let normal_back = Color(60, 79, 117, 192);
-export let normal_face = Color(0, 0, 0, 160, 255);
+export let normal_back = Color(60, 79, 117, 255);
+export let normal_face = Color(5, 0, 10, 255);
 export let raised_back = Color(0, 0, 0, 255);
-export let raised_face = Color(181, 187, 189, 190);
-export let hot_back = Color(0, 155, 155, 255);
+export let raised_face = Color(127, 127, 127, 255);
+export let hot_back = Color(125, 245, 185, 255);
 export let hot_face = Color(0, 77, 128, 204);
 export let activating_back = Color(255, 255, 255, 255);
-export let activating_face = Color(0, 204, 123, 191);
-export let accent = Color(160, 191, 238, 81);
+export let activating_face = Color(0, 204, 123, 192);
+export let accent = Color(34, 89, 144, 142);
 export let focus_back = normal_back;
 export let focus_face = normal_face;
 

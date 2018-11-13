@@ -1,14 +1,14 @@
 let round = Math.round;
 
-var box_gradient_x1 = 40;
-var box_gradient_y1 = 0;
-var box_gradient_x2 = 120;
-var box_gradient_y2 = 120;
-var box_gradient_color_stop1 = Color(36, 78, 105, 90);
-var box_gradient_color_stop2 = Color(15, 15, 76, 100);
+var box_gradient_x1 = 7;
+var box_gradient_y1 = 18;
+var box_gradient_x2 = 3;
+var box_gradient_y2 = -32;
+var box_gradient_color_stop1 = Color(0, 30, 76, 92);
+var box_gradient_color_stop2 = Color(72, 157, 210, 92);
 var bg_color = Color(0, 15, 38, 255);
 var panel_color1 = Color(26, 38, 64, 255);
-var panel_color2 = Color(51, 77, 102, 192);
+var panel_color2 = Color(51, 77, 102, 255);
 
 var window_active = true;
 
@@ -35,7 +35,8 @@ function set_size() {
 }
 
 function randomize_color(color) {
-    let a = [_r, _g, _b, _a];    
+    //let a = [_r, _g, _b, _a];    
+    let a = [_r, _g, _b];
     for (let i = 0; i < a.length; i++) {
         let k = a[i];
         let v;
@@ -104,7 +105,7 @@ function make_drawbox_gradient(context, x1, y1, x2, y2, colorstop1, colorstop2) 
     console.assert(context);
     let grd = context.createLinearGradient(x1, y1, x2, y2);
     grd.addColorStop(0.0, make_css_color(colorstop1));
-    grd.addColorStop(0.5, make_css_color(colorstop2));
+    grd.addColorStop(1.0, make_css_color(colorstop2));
     return grd;
 }
 
@@ -260,12 +261,23 @@ function DrawBox(rect, color) {
         }
     }
     if (use_gradient) {
-        context.translate(x, y); // for gradient
+        context.translate(x, y);
         context.fillStyle = m_simpleui.config.drawbox_gradient;
         context.fillRect(1, 1, width - 2, height - 2);
-        context.translate(-x, -y); // this appears to be faster than wrapping save/restore :->
+        context.translate(-x, -y);
     }
 
+}
+
+function draw_line(x1, y1, x2, y2) {
+    x1 = 0 | x1;
+    y1 = 0 | y1;
+    x2 = 0 | x2;
+    y2 = 0 | y2;    
+    context.beginPath();
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y2);
+    context.stroke();
 }
 
 /** make rgba color from unsigned bytes [0-255] (Smi's) */
@@ -293,6 +305,7 @@ let canvas_off = document.createElement('canvas');
 let canvas = canvas_screen; // screen seems slightly faster
 console.assert(canvas);
 let context = canvas.getContext('2d');
+context.font = '14px Arial';
 //setpixelated(context);
 
 canvas.addEventListener('mousemove', on_mouse_move, false);

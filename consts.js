@@ -4,6 +4,12 @@
 const _x = 0;
 const _y = 1;
 
+// gradient stroke edit
+const _x1 = 1 | 0; // handle
+const _y1 = 2 | 0; // handle
+const _x2 = 3 | 0;
+const _y2 = 4 | 0;
+
 // rect
 const _w = 2;
 const _h = 3;
@@ -52,8 +58,6 @@ const _right = 2|0;
 const _clicked = 0|0; // button
 const _changed = 0|0; // lots of things
 const _value = 1|0; // i guess
-const _delta_x = 1|0; // handle uses these
-const _delta_y = 2|0;
 
 // gridfont & gridfont_letter
 const _complete = 0 | 0;

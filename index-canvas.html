@@ -45,7 +45,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
     <script src="consts.js"></script>
     <script src="simpleui_driver_html5canvas.js"></script>
     <!-- -->
-    <script src="./dist/bundle.js" charset="utf-8"></script>    
+    <script src="./dist/bundle.js" charset="utf-8"></script>
     <!-- -->
     <script>
         m_simpleui.config.drawbox_gradient_enable = true;
@@ -224,8 +224,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                     if (ui.state.item_held) {
                         cursor_size = 8;
                     }
-                    let radar_cursor_pos_x = 0 | ( ((GetCursorX() / canvas.width) * w) - (cursor_size / 2) );
-                    let radar_cursor_pos_y = 0 | ( ((GetCursorY() / canvas.height) * w / aspect) - (cursor_size / 2) );
+                    let radar_cursor_pos_x = 0 | (((GetCursorX() / canvas.width) * w) - (cursor_size / 2));
+                    let radar_cursor_pos_y = 0 | (((GetCursorY() / canvas.height) * w / aspect) - (cursor_size / 2));
 
                     const layout = ui.layout_peek();
                     ui.layout_push(_none, layout[_padding], layout[_x], layout[_y] - h - pad);
@@ -417,34 +417,66 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
         }
 
         function do_gradient_panel(uiid, first_x, first_y, first_visible, first_expanded) {
+            let _;
             let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
             if (panel.visible && panel.expanded) {
-                let changed = false;
+                let changed = 0 | false;
 
-                _ = ui.slider('grad-panel-slider-x1', Rectangle(0, 0, 400, 20), -800, 800, box_gradient_x1, 'x1');
-                changed = changed | _[_changed]; // boolean assigned to boolean expression with bitwise or
-                if (_[_changed]) box_gradient_x1 = _[_value]; // if array[x]:bool then integer = array[y]
+                ui.layout_push(_horizontal);
+                {
 
-                _ = ui.slider('grad-panel-slider-y1', Rectangle(0, 0, 400, 20), -800, 800, box_gradient_y1, 'y1');
-                changed = changed | _[_changed];
-                if (_[_changed]) box_gradient_y1 = _[_value];
+                    const min_x = -50;
+                    const max_x = 150;
+                    const min_y = -50;
+                    const max_y = 150;
+                    const dim_w = max_x - min_x;
+                    const dim_h = max_y - min_y;
 
-                _ = ui.slider('grad-panel-slider-x2', Rectangle(0, 0, 400, 20), -800, 800, box_gradient_x2, 'x2');
-                changed = changed | _[_changed];
-                if (_[_changed]) box_gradient_x2 = _[_value];
+                    _ = do_gradient_stroke_edit(uiid + 'stroke-edit', -50, 150, box_gradient_x1, box_gradient_y1, box_gradient_x2, box_gradient_y2);
+                    if (_[_changed]) {
+                        changed = 0 | changed | _[_changed];
+                        box_gradient_x1 = 0 | _[_x1];
+                        box_gradient_y1 = 0 | _[_y1];
+                        box_gradient_x2 = 0 | _[_x2];
+                        box_gradient_y2 = 0 | _[_y2];
+                    }
 
-                _ = ui.slider('grad-panel-slider-y2', Rectangle(0, 0, 400, 20), -800, 800, box_gradient_y2, 'y2');
-                changed = changed | _[_changed];
-                if (_[_changed]) box_gradient_y2 = _[_value];
+                    ui.layout_push(_vertical);
+                    {
+                        _ = ui.slider('grad-panel-slider-x1', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_x1, 'x1');
+                        changed = 0 | changed | _[_changed];
+                        if (_[_changed]) box_gradient_x1 = 0 | _[_value]; // if array[x]:bool then integer = array[y]
+
+                        _ = ui.slider('grad-panel-slider-y1', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_y1, 'y1');
+                        changed = 0 | changed | _[_changed];
+                        if (_[_changed]) box_gradient_y1 = 0 | _[_value];
+
+                        _ = ui.slider('grad-panel-slider-x2', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_x2, 'x2');
+                        changed = 0 | changed | _[_changed];
+                        if (_[_changed]) box_gradient_x2 = 0 | _[_value];
+
+                        _ = ui.slider('grad-panel-slider-y2', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_y2, 'y2');
+                        changed = 0 | changed | _[_changed];
+                        if (_[_changed]) box_gradient_y2 = 0 | _[_value];
+
+                        ui.layout_increment2(0, 20);
+                        ui.label('pt1: ' + box_gradient_x1 + ', ' + box_gradient_y1, Rectangle(0, 0, 200, 20))
+                        ui.label('pt2: ' + box_gradient_x2 + ', ' + box_gradient_y2, Rectangle(0, 0, 200, 20))
+                    }
+                    ui.layout_pop();
+
+                    ui.layout_increment2(0, dim_h);
+                } // horizontal 1                
+                ui.layout_pop();
 
                 ui.layout_push(_horizontal);
                 {
                     _ = do_color('box_gradient_color_stop1', box_gradient_color_stop1, 'stop1 color');
-                    changed = changed | _[_changed];
+                    changed = 0 | changed | _[_changed];
 
                     _ = do_color('box_gradient_color_stop2', box_gradient_color_stop2, 'stop2 color');
-                    changed = changed | _[_changed];
-                }
+                    changed = 0 | changed | _[_changed];
+                } // horizontal 2
                 ui.layout_pop();
 
                 if (changed) {
@@ -576,8 +608,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             do_sidepanel();
             do_color_panel('color-panel-1', 250, 50, true, true);
             do_gradient_panel('gradient-panel-1', 1110, 50, true, true);
-            do_scrolltest_panel('scrolltest-panel-1', 1110, 365, true, true);
-            do_gridfont_panel('gridfont-panel-1', 250, 650, true, true);
+            do_scrolltest_panel('scrolltest-panel-1', 1110, 465, true, true);
+            do_gridfont_panel('gridfont-panel-1', 250, 635, true, true);
         }
 
         function main() {

@@ -83,8 +83,8 @@ function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
             state.expanded = 0 | !state.expanded;
         }
         if (_handle[_changed]) {
-            state.rect[_x] = 0 | _handle[_delta_x];
-            state.rect[_y] = 0 | _handle[_delta_y];
+            state.rect[_x] = 0 | _handle[_x1];
+            state.rect[_y] = 0 | _handle[_y1];
         }
 
     }

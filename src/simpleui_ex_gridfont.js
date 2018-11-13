@@ -44,18 +44,6 @@ let _gridfont_gradient = make_drawbox_gradient(
     Color(255, 0, 255, 255)
 );
 
-function draw_line(x1, y1, x2, y2) {
-    x1 = 0 | x1;
-    y1 = 0 | y1;
-    x2 = 0 | x2;
-    y2 = 0 | y2;
-    context.strokeStyle = _gridfont_gradient;
-    context.beginPath();
-    context.moveTo(x1, y1);
-    context.lineTo(x2, y2);
-    context.stroke();
-}
-
 //global init
 let _gridfont_chars_a = 'abcdefghijklmnopqrstuvwxyz '.split('');
 let _gridfont_chars = {};
@@ -116,6 +104,7 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
 
     // draw lines up to segment count
     // sometimes segment is > fl.length due to prev frame
+    context.strokeStyle = _gridfont_gradient;
     if (segment <= fl.length) {
         for (let i = 0; i < segment; i++) {    
             let a1 = 0 | fl[i][0];
