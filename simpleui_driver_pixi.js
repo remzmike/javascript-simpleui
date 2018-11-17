@@ -1,15 +1,5 @@
 let round = Math.round;
 
-var box_gradient_x1 = 7;
-var box_gradient_y1 = 18;
-var box_gradient_x2 = 3;
-var box_gradient_y2 = -32;
-var box_gradient_color_stop1 = Color(0, 30, 76, 92);
-var box_gradient_color_stop2 = Color(72, 157, 210, 92);
-var bg_color = Color(0, 15, 38, 255);
-var panel_color1 = Color(26, 38, 64, 255);
-var panel_color2 = Color(51, 77, 102, 255);
-
 var window_active = true;
 
 let _mouse_pos = [0 | 0, 0 | 0];
@@ -187,7 +177,7 @@ function DrawText_Original(text, x, y, color) { // 10-12 ms ff
     }
 }
 
-function DrawBox(rect, color) {
+function DrawBoxInternal(rect, color) {
     
     const x = rect[_x];
     const y = rect[_y];
@@ -253,6 +243,15 @@ function DrawBox(rect, color) {
 
 }
 
+function DrawBox(rect, color) {
+    return DrawBoxInternal(rect, color, 0 | false);
+}
+
+function DrawRoundedBox(rect, color) {
+    const soft = 0 | m_simpleui.config.drawbox_soft_enable;
+    return DrawBoxInternal(rect, color, soft);
+}
+
 function draw_line(x1, y1, x2, y2) {
     x1 = 0 | x1;
     y1 = 0 | y1;
@@ -274,6 +273,7 @@ function Color(r, g, b, a) {
 }
 
 const DrawText = DrawText_PixiText;
+//const DrawText = DrawText_Bitmap;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST; // {LINEAR: 0 (default), NEAREST: 1}
 

@@ -63,6 +63,8 @@ function do_gridfont(uiid, s, name, x, y, scale, reset) {
     let complete = 0 | true;
     let reset_complete = 0 | true;
 
+    context.lineWidth = 1;    
+
     for (let i = 0; i < a.length; i++) {
         let letter = a[i];
         if (!_gridfont_chars[letter]) {
@@ -73,6 +75,9 @@ function do_gridfont(uiid, s, name, x, y, scale, reset) {
         complete = complete && _[_complete];
         reset_complete = reset_complete && _[_reset_complete];
     }
+
+    context.strokeStyle = uidraw.default_line_color;
+    context.lineWidth = 1;    
 
     return [complete, reset_complete];
 }
@@ -143,7 +148,7 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
         let cursize_x2 = 0 | (cursize * 2);
         context.save();
         context.strokeStyle = _gridfont_gradient;
-        context.fillStyle = _gridfont_gradient;
+        //context.fillStyle = _gridfont_gradient;
         DrawBox(p1 - cursize, p2 - cursize, cursize_x2, cursize_x2);
         //draw_line(Math.random()*2*400,Math.random()*2*500, p1, p2);
         context.restore();

@@ -78,3 +78,11 @@ console.assert(sum([1, 2, 3]) == 6);
 function str(n) {
     return n + '';
 }
+
+function init_array(size, init_val) {
+    let a = [];
+    for (let i = 0; i < size; i++) {
+        a[i] = init_val;
+    }
+    return a;
+}

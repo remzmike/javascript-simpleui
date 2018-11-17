@@ -21,7 +21,7 @@ function do_scroll_begin(uiid, rect, row_height, item_count) {
     state.last_visible_index = state.first_visible_index + max_visible;
 
     let rect2 = uidraw.rectangle_dilate(rect, 1);
-    uidraw.rectangle(rect2, panel_color2);
+    uidraw.rectangle(rect2, uidraw.panel_color);
 
     context.save();
     var enable_clip = true;
@@ -47,7 +47,7 @@ function do_scroll_end(uiid) {
     // the concept of first_value instead of normal simpleui value param, one way binding...
     state.layout[_y] = state.layout[_y] - (rect[_h] + 42);
     state.layout[_x] = state.layout[_x] + (rect[_h] - 20);
-    _ = ui.vslider('scroll-experiment-slider', Rectangle(0, 0, 20, rect[_h]), 0, slider_max, state.yscroll, '');
+    let _ = ui.vslider('scroll-experiment-slider', Rectangle(0, 0, 20, rect[_h]), 0, slider_max, state.yscroll, '');
     if (_[_changed]) {
         state.yscroll = _[_value];
     }

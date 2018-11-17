@@ -5,6 +5,7 @@
 * simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
 * simpleui - v01 - 9/16/2018 1:03 PM - added webgl support
 * simpleui - v02 - 11/10/2018 4:14 PM - broad refactoring
+* simpleui - v03 - 11/17/2018 5:32 PM - broad refactoring
 
 ## About
 

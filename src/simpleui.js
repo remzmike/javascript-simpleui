@@ -22,6 +22,8 @@ This explains why forcing bools to SMI prevents deopt and increases performance.
 I didn't know the same happens for `null` and `undefined`. Maybe I need to deal with that.
 */
 
+let uidraw = m_simpleui_drawing;
+
 let config = {
     drawhotspots_enable: false,
     drawbox_soft_enable: true,
@@ -30,15 +32,13 @@ let config = {
     drawtext_bitmap: true,
     drawbox_gradient: make_drawbox_gradient(
         context,
-        box_gradient_x1, box_gradient_y1,
-        box_gradient_x2, box_gradient_y2,
-        box_gradient_color_stop1,
-        box_gradient_color_stop2
+        uidraw.box_gradient.x1, uidraw.box_gradient.y1,
+        uidraw.box_gradient.x2, uidraw.box_gradient.y2,
+        uidraw.box_gradient.color_stop1,
+        uidraw.box_gradient.color_stop2
     ),
 }
 let component_state = {};
-
-let draw = m_simpleui_drawing;
 
 let debug_draw_debuglines = false;
 let debuglines = [];
@@ -432,6 +432,12 @@ function main_loop() {
     }
     //}
 
+    if (uistate.item_held) {
+        document.body.style.cursor = "pointer";
+    } else {
+        document.body.style.cursor = "";
+    }
+
     if (debug_draw_debuglines) {
         const mousex = (uistate.mouselocation && uistate.mouselocation[_x]);
         const mousey = (uistate.mouselocation && uistate.mouselocation[_y]);
@@ -452,7 +458,7 @@ function main_loop() {
     if (config.drawhotspots_enable) {
         for (let i = 0; i < uistate.hotspot_count; i++) {
             const hotspot_rect = uistate.hotspot_rects[i];
-            draw.rectangle(hotspot_rect, Color(255, 0, 0, 64));
+            uidraw.rectangle(hotspot_rect, Color(255, 0, 0, 64));
         }
     }
 
@@ -493,25 +499,29 @@ function add_hotspot(uiid, rect) {
 
 function do_label(text, local_rect) {
     const rect = layout_translated(local_rect);
-    const valign = draw.vertical_center_text(rect);
+    const valign = uidraw.vertical_center_text(rect);
     const color = Color(255, 255, 255, 255); // default text color, not exposed yet
-    draw.label(text, valign, color);
+    uidraw.label(text, valign, color);
     layout_increment(rect);
 }
 
 function do_rectangle(local_rect, color) {
     const rect = layout_translated(local_rect);
-    draw.rectangle(rect, color);
+    uidraw.rectangle(rect, color);
     layout_increment(rect);
 }
 
 // will write a 2nd line of functions if i need text offset
 function do_button(uiid, text, local_rect) {
     const rect = layout_translated(local_rect);
+    
+    // this doesn't account for buttons in other layers/windows which have the same params
+    uiid = `button(${text},${rect[_x]},${rect[_y]},${rect[_w]},${rect[_h]})`; // nolive
+
     add_hotspot(uiid, rect);
 
     const state = calc_drawstate(uiid);
-    draw.button(text, rect, state);
+    uidraw.button(text, rect, state);
     layout_increment(rect);
 
     const clicked = 0 | (uistate.item_went_downup == uiid);
@@ -530,14 +540,13 @@ function do_checkbox(uiid, local_rect, value) {
     }
 
     const state = calc_drawstate(uiid);
-    draw.checkbox(uiid, rect, state, value);
+    uidraw.checkbox(uiid, rect, state, value);
     layout_increment(rect);
 
     return [0 | changed, 0 | value];
 }
 
-function do_progressbar(uiid, local_rect, max, value) {
-    console.assert(uiid != '', 'id cannot be blank');
+function do_progressbar(local_rect, max, value) {
     console.assert(max != null, 'max cannot be null');
 
     let changed = 0 | false;
@@ -547,9 +556,8 @@ function do_progressbar(uiid, local_rect, max, value) {
         value = clamped_value;
     }
 
-    let state = calc_drawstate(uiid);
     const rect = layout_translated(local_rect);
-    draw.progressbar(uiid, rect, state, max, value);
+    uidraw.progressbar(rect, max, value);
     layout_increment(rect);
 
     return [0 | changed, 0 | value];
@@ -596,8 +604,8 @@ function do_slider(uiid, local_rect, min, max, value, label) {
     }
 
     const state = calc_drawstate(uiid);
-    draw.slider(uiid, rect, state, min, max, value, label);
-    //draw.slider2(uiid, rect[_x], rect[_y], rect[_w], rect[_h], state[_Hovered], state[_Held], min, max, value, label);
+    uidraw.slider(uiid, rect, state, min, max, value, label);
+    //uidraw.slider2(uiid, rect[_x], rect[_y], rect[_w], rect[_h], state[_Hovered], state[_Held], min, max, value, label);
     layout_increment(rect);
 
     return [0 | changed, 0 | value];
@@ -645,7 +653,7 @@ function do_vslider(uiid, local_rect, min, max, value, label) {
     }
 
     let state = calc_drawstate(uiid);
-    draw.vslider(uiid, rect, state, min, max, value, label);
+    uidraw.vslider(uiid, rect, state, min, max, value, label);
     layout_increment(rect);
 
     return [0 | changed, 0 | value];
@@ -665,7 +673,7 @@ function do_checkbutton(uiid, text, local_rect, value, text_offset_x, text_offse
     const rect = layout_translated(local_rect);
     add_hotspot(uiid, rect);
     let state = calc_drawstate(uiid);
-    draw.checkbutton(text, rect, state, value, text_offset_x, text_offset_y);
+    uidraw.checkbutton(text, rect, state, value, text_offset_x, text_offset_y);
     layout_increment(rect);
 
     return [0 | changed, 0 | value];
@@ -711,7 +719,7 @@ function do_handle(uiid, local_rect, x1, y1) {
 
     let state = calc_drawstate(uiid);
 
-    draw.handle(uiid, rect, state);
+    uidraw.handle(uiid, rect, state);
     layout_increment(rect);
 
     return [0 | changed, 0 | x1, 0 | y1];

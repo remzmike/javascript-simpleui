@@ -1,26 +1,6 @@
-let round = Math.round;
-
-var box_gradient_x1 = 7;
-var box_gradient_y1 = 18;
-var box_gradient_x2 = 3;
-var box_gradient_y2 = -32;
-var box_gradient_color_stop1 = Color(0, 30, 76, 92);
-var box_gradient_color_stop2 = Color(72, 157, 210, 92);
-var bg_color = Color(0, 15, 38, 255);
-var panel_color1 = Color(26, 38, 64, 255);
-var panel_color2 = Color(51, 77, 102, 255);
-
 var window_active = true;
 
 let _mouse_pos = [0 | 0, 0 | 0];
-
-function init_array(size, init_val) {
-    let a = [];
-    for (let i = 0; i < size; i++) {
-        a[i] = init_val;
-    }
-    return a;
-}
 
 function set_size() {
     canvas.width = window.innerWidth - app.canvas_size_hack;
@@ -35,16 +15,10 @@ function set_size() {
 }
 
 function randomize_color(color) {
-    //let a = [_r, _g, _b, _a];    
     let a = [_r, _g, _b];
     for (let i = 0; i < a.length; i++) {
         let k = a[i];
-        let v;
-        if (k == _a) {
-            v = 125 + Math.round(Math.random() * (255-125));
-        } else {
-            v = 55 + Math.round(Math.random() * 200);
-        }
+        let v = 50 + Math.round(Math.random() * 150);
         color[k] = v;
     }
 }
@@ -93,7 +67,7 @@ function make_css_color(color) {
     }
 
     if (use_alpha) {
-        css = `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, ${color[_a]/255})`;
+        css = `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, ${color[_a] / 255})`;
     } else {
         css = `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, 1)`;
     }
@@ -216,17 +190,15 @@ function DrawBox_(rect, color) {
 }
 
 // todo: later: pass intent instead of color? or maybe that's a level above this
-function DrawBox(rect, color) {
+function DrawBoxInternal(rect, color, soft) {
 
     let x = rect[_x];
     let y = rect[_y];
     let width = rect[_w];
     let height = rect[_h];
 
-    const soft = m_simpleui.config.drawbox_soft_enable;
-
     //if (color) {
-        context.fillStyle = make_css_color(color);
+    context.fillStyle = make_css_color(color);
     //}
 
     if (soft) {
@@ -269,11 +241,20 @@ function DrawBox(rect, color) {
 
 }
 
+function DrawBox(rect, color) {
+    return DrawBoxInternal(rect, color, 0 | false);
+}
+
+function DrawRoundedBox(rect, color) {
+    const soft = 0 | m_simpleui.config.drawbox_soft_enable;
+    return DrawBoxInternal(rect, color, soft);
+}
+
 function draw_line(x1, y1, x2, y2) {
     x1 = 0 | x1;
     y1 = 0 | y1;
     x2 = 0 | x2;
-    y2 = 0 | y2;    
+    y2 = 0 | y2;
     context.beginPath();
     context.moveTo(x1, y1);
     context.lineTo(x2, y2);
@@ -292,28 +273,24 @@ function Color(r, g, b, a) {
 
 /* */
 
-function setpixelated(context){
-    context['imageSmoothingEnabled'] = false;       /* standard */
-    context['mozImageSmoothingEnabled'] = false;    /* Firefox */
-    context['oImageSmoothingEnabled'] = false;      /* Opera */
-    context['webkitImageSmoothingEnabled'] = false; /* Safari */
-    context['msImageSmoothingEnabled'] = false;     /* IE */
-}
 
 let canvas_screen = document.getElementById('myCanvas');
 let canvas_off = document.createElement('canvas');
 let canvas = canvas_screen; // screen seems slightly faster
 console.assert(canvas);
-let context = canvas.getContext('2d');
+
+let context = canvas.getContext('2d', {alpha: false});
 context.font = '14px Arial';
-//setpixelated(context);
+
+// i wanted to draw aliased/jagged lines on html5 canvas, but it's not possible (except manually)
+//
+// imageSmoothingEnabled applies to pattern fills and drawImage, it does not affect general anti-aliasing. 
 
 canvas.addEventListener('mousemove', on_mouse_move, false);
 // touch move? (NO!)
 
 canvas.addEventListener('mousedown', on_mouse_down, false);
-canvas.addEventListener('touchstart', on_touch_start, {capture: false, passive: true});
-    
+canvas.addEventListener('touchstart', on_touch_start, { capture: false, passive: true });
+
 canvas.addEventListener('mouseup', on_mouse_up, false);
 canvas.addEventListener('touchend', on_touch_end, false);
-

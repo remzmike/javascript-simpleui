@@ -41,6 +41,8 @@ function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
         handle_w = 0 | 200;
     }
 
+    handle_w = handle_w + 1; // we move handle left 1 pixel so border overlaps with collapse button, so width needs +1
+
     // todo: later: push_id('handle');
     // or: next_id('-handle'); etc.
 
@@ -48,19 +50,18 @@ function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
     {
         if (state.expanded) {
             let back_rect = Rectangle(inner[_x], inner[_y], rect[_w] + dilate * 2, rect[_h] + dilate * 2 + bar_height);
-            let back_rect_d1 = uidraw.rectangle_dilate(back_rect, 1);
-            let back_rect_e1 = uidraw.rectangle_erode(back_rect, 1);
-            uidraw.rectangle(back_rect, panel_color2);
-            uidraw.rectangle(back_rect_e1, panel_color1);
+            let back_rect1 = uidraw.rectangle_erode(back_rect, 1);
+            uidraw.rounded_rectangle(back_rect, uidraw.normal_back);
+            uidraw.rounded_rectangle(back_rect1, uidraw.panel_color);
         }
 
-        let glyph = state.expanded ? 'v' : '>';
+        let glyph = state.expanded ? '-' : '>';
         let text_width = 10; // hax
         let text_ox = 0 | (bar_height / 2 - text_width / 2); // (bar_height/2)-(text_width/2);
         let text_oy = 0 | (text_ox / 2);
 
         const _button = ui.checkbutton(uiid + '-button', glyph, Rectangle(0, 0, bar_height, bar_height), state.expanded, text_ox, text_oy);
-        const _handle = ui.handle(uiid + '-handle', Rectangle(bar_height, 0, handle_w, bar_height), x, y);
+        const _handle = ui.handle(uiid + '-handle', Rectangle(bar_height - 1, 0, handle_w, bar_height), x, y);
 
         ui.label(uiid, Rectangle(bar_height + 10, 0, handle_w + dilate, bar_height));
 
@@ -69,11 +70,6 @@ function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
             if (rect) {
                 let rect0 = Rectangle(rect[_x], rect[_y], rect[_w], rect[_h]);
                 let rect1 = uidraw.rectangle_dilate(rect0, dilate);
-                let rect2 = uidraw.rectangle_dilate(rect0, dilate - 1);
-
-                //uidraw.rectangle(rect1, Color(255,0,0,255));
-                //uidraw.rectangle(rect1, panel_color2);                
-                //uidraw.rectangle(rect2, panel_color1);
 
                 ui.add_hotspot(uiid + '-bg-hotspot', rect1);
             }

@@ -1,6 +1,9 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 
+const css_line_color2 = make_css_color(Color(255, 255, 255, 255));
+const css_line_color1 = make_css_color(Color(0, 0, 0, 255))
+
 function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
     let _;
 
@@ -44,9 +47,9 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
 
         // line between points
         context.lineWidth = 2;
-        context.strokeStyle = make_css_color(Color(0, 0, 0, 255));
+        context.strokeStyle = css_line_color1;        
         draw_line(layout[_x] + p1_x - 1, layout[_y] + p1_y - 2, layout[_x] + p2_x - 1, layout[_y] + p2_y - 2);
-        context.strokeStyle = make_css_color(Color(255, 255, 255, 255));
+        context.strokeStyle = css_line_color2;
         draw_line(layout[_x] + p1_x, layout[_y] + p1_y, layout[_x] + p2_x, layout[_y] + p2_y);
         context.lineWidth = 1;
 
@@ -74,6 +77,9 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
     }
     ui.layout_pop();
     ui.layout_increment2(dim_w, 0);
+
+    context.strokeStyle = uidraw.default_line_color;
+    context.lineWidth = 1;
 
     return [
         0 | changed,

@@ -17,8 +17,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
     <meta property="og:title" content="simpleui: realtime immediate-mode ui">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://remzmike.github.io/simpleui">
-    <meta property="og:image" content="http://remzmike.github.io/mash/simpleui-js-alpha-crop.png">
-    <meta property="og:image:secure_url" content="https://remzmike.github.io/mash/simpleui-js-alpha-crop.png" />
+    <meta property="og:image" content="http://remzmike.github.io/mash/simpleui-js-alpha-crop.png?2">
+    <meta property="og:image:secure_url" content="https://remzmike.github.io/mash/simpleui-js-alpha-crop.png?2" />
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1600">
     <meta property="og:image:height" content="838">
@@ -54,6 +54,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
         var ui = m_simpleui;
         var uidraw = m_simpleui_drawing;
         var Rectangle = ui.Rectangle;
+        var Point = ui.Point;
 
         var app = {};
         app.main_loop_time = 0;
@@ -65,6 +66,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
     </script>
     <script> // like a watch        
         function do_color(key, color, label) {
+            let _;
+
             let changed = false | 0;
 
             // base component sizes
@@ -105,8 +108,10 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                     ui.layout_increment2(0, h);
 
                     const swatch_dim = h * 3 + pad * 2
-                    const swatch_rect = Rectangle(0, 0, swatch_dim, swatch_dim);
-                    ui.rectangle(swatch_rect, color);
+                    const swatch_rect = Rectangle(0, 0, swatch_dim, swatch_dim);                    
+                    //ui.rectangle(swatch_rect, color);
+                    uidraw.rounded_rectangle(ui.layout_translated(swatch_rect), color);
+                    ui.layout_increment(swatch_rect);
 
                     _ = ui.button(key + '-rand-button', 'random', Rectangle(0, 0, swatch_dim, h));
                     if (_[_clicked]) {
@@ -127,7 +132,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             return [changed | 0, color];
         }
 
-        function do_ms_meter(uiid, label, a_time) {
+        function do_ms_meter(uiid, label, a_time, high_value) {
 
             let state = ui.get_state(uiid);
             if (!state) {
@@ -139,25 +144,25 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             times.push(a_time);
             times.shift();
 
-            let high_value = 32;
+            //let high_value = 32;
 
             ui.label(label, Rectangle(0, 0, 100, 20));
-            let v = sum(times) / times.length;
-            v = Math.min(high_value, v);
+            let v = 0 | sum(times) / times.length;
+            v = 0 | Math.floor( Math.min(high_value, v) );
             ui.layout_push(_horizontal);
-            ui.progressbar(uiid + '-progbar', Rectangle(0, 0, 100, 20), high_value, Math.ceil(v));
+            ui.progressbar(Rectangle(0, 0, 100, 20), high_value, 0 | Math.ceil(v));
 
             let tmp = ui.config.drawtext_enable;
             ui.config.drawtext_enable = true;
             {
-                ui.label(Math.floor(v) + 'ms', Rectangle(0, 0, 100, 20));
+                ui.label(v + 'ms', Rectangle(0, 0, 100, 20));
             }
             ui.config.drawtext_enable = tmp;
 
             ui.layout_pop();
         }
 
-        function do_ms_graph(uiid, label, a_time) {
+        function do_ms_graph(uiid, label, a_time, graph_height) {
             let state = ui.get_state(uiid);
             if (!state) {
                 state = ui.set_state(uiid, {
@@ -168,11 +173,11 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             times.push(a_time);
             times.shift();
 
-            let graph_height = 20;
+            //let graph_height = 40;
             ui.label(label, Rectangle(0, 0, 100, 20));
             ui.layout_push(_horizontal, 0);
             for (let i = 0; i < times.length; i++) {
-                let v = Math.min(graph_height, times[i]) | 0;
+                let v = 0 | Math.min(graph_height, times[i]);
                 ui.rectangle(Rectangle(0, 0, 4, v), Color(255, 255, 255, 51));
             }
             ui.layout_increment2(0, graph_height);
@@ -180,16 +185,18 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
         }
 
         function do_sidepanel() {
+            let _;
             let pad = 8;
             let none1 = ui.layout_push(_none, 0, 0, 0);
             let rect = Rectangle(0, 0, 200, canvas.height | 0);
             let rect2 = uidraw.rectangle_erode(rect, 2);
-            ui.rectangle(rect, panel_color1);
+            const sidepanel_color = Color(uidraw.panel_color[_r], uidraw.panel_color[_g], uidraw.panel_color[_b], 127);
+            ui.rectangle(rect, sidepanel_color);
 
             let vert1 = ui.layout_push(_vertical, pad, pad, pad);
             {
                 // reload
-                _ = ui.button('sidepanel-reload-button', 'reload', Rectangle(0, 0, 100, 20));
+                _ = ui.button('sidepanel-reload-button', 'reload', Rectangle(0, 0, 100, 24));
                 if (_[_clicked]) {
                     document.location.reload(true);
                 }
@@ -229,10 +236,9 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
                     const layout = ui.layout_peek();
                     ui.layout_push(_none, layout[_padding], layout[_x], layout[_y] - h - pad);
-                    ui.rectangle(
-                        Rectangle(0 | radar_cursor_pos_x, 0 | radar_cursor_pos_y, 0 | cursor_size, 0 | cursor_size),
-                        uidraw.hot_back
-                    );
+                    const mouse_rect = Rectangle(0 | radar_cursor_pos_x, 0 | radar_cursor_pos_y, 0 | cursor_size, 0 | cursor_size);
+                    ui.rectangle(mouse_rect, uidraw.normal_back);
+                    ui.rectangle(mouse_rect, uidraw.accent);
                     ui.layout_pop();
                 }
 
@@ -245,12 +251,12 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 }
 
                 // frame times + graph
-                do_ms_meter('sidepanel-ms-meter', 'frame time', app.main_loop_time);
-                do_ms_graph('sidepanel-frame-graph', 'frame graph', app.main_loop_time);
+                do_ms_meter('sidepanel-ms-meter', 'frame time', app.main_loop_time, 50);
+                do_ms_graph('sidepanel-frame-graph', 'frame graph', app.main_loop_time, 20);
 
                 // actual times + graph
-                do_ms_meter('sidepanel-actual-meter', 'cpu time per frame', app.main_proc_time);
-                do_ms_graph('sidepanel-actual-graph', 'cpu time graph', app.main_proc_time);
+                do_ms_meter('sidepanel-actual-meter', 'cpu time per frame', app.main_proc_time, 10);
+                do_ms_graph('sidepanel-actual-graph', 'cpu time graph', app.main_proc_time, 20);
 
                 // canvas size hack
                 ui.label('canvas trim', Rectangle(0, 0, 100, 20));
@@ -264,18 +270,18 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 ui.layout_pop();
 
                 // show/hides
-                {
-                    let panels = ['color-panel-1', 'gradient-panel-1', 'gridfont-panel-1i', 'scrolltest-panel-1'];
+                /*{
+                    let panels = ['color panel', 'gradient panel', 'gridfont paneli', 'scroll test panel'];
 
                     for (let i = 0; i < panels.length; i++) {
                         let uiid = panels[i];
                         let panel = ui.get_state(uiid);
-                        _ = ui.checkbutton('sidepanel-toggle-' + uiid, 'show ' + uiid, Rectangle(0, 0, 180, 20), panel && panel.visible);
+                        _ = ui.checkbutton('sidepanel-toggle-' + uiid, 'show ' + uiid, Rectangle(0, 0, 183, 24), panel && panel.visible);
                         if (_[_changed]) {
                             panel.visible = !panel.visible;
                         }
                     }
-                }
+                }*/
 
                 // misc
                 if (false) {
@@ -292,10 +298,10 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 // flags
                 {
                     // editor help for function arguments needs some revamping
-                    _ = ui.button('button-rtc', 'reset text cache', Rectangle(0, 0, 150, 20));
+                    _ = ui.button('button-rtc', 'reset text cache', Rectangle(0, 0, 150, 24));
                     if (_[_clicked]) _drawtext_cache = {};
 
-                    _ = ui.button('button-rbc', 'reset box cache', Rectangle(0, 0, 150, 20));
+                    _ = ui.button('button-rbc', 'reset box cache', Rectangle(0, 0, 150, 24));
                     if (_[_clicked]) _drawbox_cache = {};
 
                     ui.layout_push(_horizontal);
@@ -374,43 +380,20 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 // row 1
                 ui.layout_push(_horizontal)
                 {
-                    do_color_row(uidraw, ['accent']);
-                    do_color_row(window, ['bg_color', 'panel_color1', 'panel_color2']);
+                    do_color_row(uidraw, ['accent', 'panel_color', 'bg_color']);
                 }
                 ui.layout_pop();
 
                 // row 2
                 ui.layout_push(_horizontal)
-                do_color_row(uidraw, ['normal_back', 'raised_back', 'hot_back', 'activating_back']);
+                do_color_row(uidraw, ['normal_back', 'normal_face', 'activating_face']);
                 ui.layout_pop();
 
                 // row 3
-                ui.layout_push(_horizontal)
-                do_color_row(uidraw, ['normal_face', 'raised_face', 'hot_face', 'activating_face']);
+                const peek = ui.layout_peek();
+                ui.layout_push(_horizontal, peek[_padding], peek[_x] + 202, peek[_y]);
+                do_color_row(uidraw, ['raised_face', 'raised_accent']);
                 ui.layout_pop();
-
-                ui.label('-additional control previews-', Rectangle(0, 0, 100, 60));
-
-                _ = ui.button('2', 'this is a button', Rectangle(0, 0, 100, 20));
-                if (_[_clicked]) {
-                    console.log('[button clicked]');
-                }
-
-                ui.layout_push(_horizontal);
-                {
-                    _ = ui.checkbutton('5', 'checkbutton', Rectangle(0, 0, 100, 20), app.widget5value);
-                    if (_[_changed]) {
-                        app.widget5value = _[_value];
-                    }
-
-                    _ = ui.checkbox('6', Rectangle(0, 0, 20, 20), app.widget5value);
-                    if (_[_changed]) {
-                        app.widget5value = _[_value];
-                    }
-                }
-                ui.layout_pop();
-
-
             }
             do_panel_end(uiid);
 
@@ -432,36 +415,38 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                     const dim_w = max_x - min_x;
                     const dim_h = max_y - min_y;
 
-                    _ = do_gradient_stroke_edit(uiid + 'stroke-edit', -50, 150, box_gradient_x1, box_gradient_y1, box_gradient_x2, box_gradient_y2);
+                    _ = do_gradient_stroke_edit(uiid + 'stroke-edit', -50, 150, uidraw.box_gradient.x1, uidraw.box_gradient.y1, uidraw.box_gradient.x2, uidraw.box_gradient.y2);
                     if (_[_changed]) {
                         changed = 0 | changed | _[_changed];
-                        box_gradient_x1 = 0 | _[_x1];
-                        box_gradient_y1 = 0 | _[_y1];
-                        box_gradient_x2 = 0 | _[_x2];
-                        box_gradient_y2 = 0 | _[_y2];
+                        uidraw.box_gradient.x1 = 0 | _[_x1];
+                        uidraw.box_gradient.y1 = 0 | _[_y1];
+                        uidraw.box_gradient.x2 = 0 | _[_x2];
+                        uidraw.box_gradient.y2 = 0 | _[_y2];
                     }
 
                     ui.layout_push(_vertical);
                     {
-                        _ = ui.slider('grad-panel-slider-x1', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_x1, 'x1');
+                        _ = ui.slider('grad-panel-slider-x1', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.x1, 'x1');
                         changed = 0 | changed | _[_changed];
-                        if (_[_changed]) box_gradient_x1 = 0 | _[_value]; // if array[x]:bool then integer = array[y]
+                        if (_[_changed]) {
+                            uidraw.box_gradient.x1 = 0 | _[_value];
+                        }
 
-                        _ = ui.slider('grad-panel-slider-y1', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_y1, 'y1');
+                        _ = ui.slider('grad-panel-slider-y1', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.y1, 'y1');
                         changed = 0 | changed | _[_changed];
-                        if (_[_changed]) box_gradient_y1 = 0 | _[_value];
+                        if (_[_changed]) uidraw.box_gradient.y1 = 0 | _[_value];
 
-                        _ = ui.slider('grad-panel-slider-x2', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_x2, 'x2');
+                        _ = ui.slider('grad-panel-slider-x2', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.x2, 'x2');
                         changed = 0 | changed | _[_changed];
-                        if (_[_changed]) box_gradient_x2 = 0 | _[_value];
+                        if (_[_changed]) uidraw.box_gradient.x2 = 0 | _[_value];
 
-                        _ = ui.slider('grad-panel-slider-y2', Rectangle(0, 0, 200, 20), -50, 150, box_gradient_y2, 'y2');
+                        _ = ui.slider('grad-panel-slider-y2', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.y2, 'y2');
                         changed = 0 | changed | _[_changed];
-                        if (_[_changed]) box_gradient_y2 = 0 | _[_value];
+                        if (_[_changed]) uidraw.box_gradient.y2 = 0 | _[_value];
 
                         ui.layout_increment2(0, 20);
-                        ui.label('pt1: ' + box_gradient_x1 + ', ' + box_gradient_y1, Rectangle(0, 0, 200, 20))
-                        ui.label('pt2: ' + box_gradient_x2 + ', ' + box_gradient_y2, Rectangle(0, 0, 200, 20))
+                        ui.label('pt1: ' + uidraw.box_gradient.x1 + ', ' + uidraw.box_gradient.y1, Rectangle(0, 0, 200, 20))
+                        ui.label('pt2: ' + uidraw.box_gradient.x2 + ', ' + uidraw.box_gradient.y2, Rectangle(0, 0, 200, 20))
                     }
                     ui.layout_pop();
 
@@ -471,10 +456,10 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
                 ui.layout_push(_horizontal);
                 {
-                    _ = do_color('box_gradient_color_stop1', box_gradient_color_stop1, 'stop1 color');
+                    _ = do_color('box_gradient.color_stop1', uidraw.box_gradient.color_stop1, 'stop1 color');
                     changed = 0 | changed | _[_changed];
 
-                    _ = do_color('box_gradient_color_stop2', box_gradient_color_stop2, 'stop2 color');
+                    _ = do_color('box_gradient.color_stop2', uidraw.box_gradient.color_stop2, 'stop2 color');
                     changed = 0 | changed | _[_changed];
                 } // horizontal 2
                 ui.layout_pop();
@@ -482,10 +467,10 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 if (changed) {
                     let grd = make_drawbox_gradient(
                         context,
-                        box_gradient_x1, box_gradient_y1,
-                        box_gradient_x2, box_gradient_y2,
-                        box_gradient_color_stop1,
-                        box_gradient_color_stop2
+                        uidraw.box_gradient.x1, uidraw.box_gradient.y1,
+                        uidraw.box_gradient.x2, uidraw.box_gradient.y2,
+                        uidraw.box_gradient.color_stop1,
+                        uidraw.box_gradient.color_stop2
                     );
                     m_simpleui.config.drawbox_gradient = grd;
                 }
@@ -509,15 +494,19 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
             if (panel.visible && panel.expanded) {
 
-                let _ = ui.button(uiid + '-test-button', 'gridfont ' + (state.run ? 'stop' : 'run'), Rectangle(0, 0, 150, 20));
+                ui.layout_push(_horizontal);
+                let _ = ui.button(uiid + '-test-button', 'gridfont ' + (state.run ? 'stop' : 'run'), Rectangle(0, 0, 150, 24));
                 if (_[_clicked]) {
                     state.run = 0 | (!state.run);
                 }
 
-                _ = ui.button(uiid + '-test-button2', 'gridfont reset', Rectangle(0, 0, 150, 20));
+                _ = ui.button(uiid + '-test-button2', 'gridfont reset', Rectangle(0, 0, 150, 24));
                 if (_[_clicked]) {
                     state.reset = 0 | true;
                 }
+                ui.layout_pop();
+
+                ui.layout_increment2(0, 24);
 
                 context.save();
                 context.translate(0.5, 0);
@@ -538,15 +527,15 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                     //let prev = context.globalCompositeOperation;
                     //context.globalCompositeOperation = modes[6];
 
-                    _ = do_gridfont(uiid + '-gridfont1', 'welcome to the jungle', 'hint-four', rect[_x], rect[_y], 10, state.reset);
+                    _ = do_gridfont(uiid + '-gridfont1', 'abcdefghijklmnopqrstuvwxyz', 'hint-four', rect[_x], rect[_y], 10, state.reset);
                     complete = 0 | (complete && _[_complete]);
                     reset_complete = 0 | (reset_complete && _[_reset_complete]);
                     if (_[_complete] || (state.reset && _[_reset_complete])) {
-                        _ = do_gridfont(uiid + '-gridfont2', 'we got fun and games', 'hint-four', rect[_x], 0 | (rect[_y] + 10 * 10), 10, state.reset);
+                        _ = do_gridfont(uiid + '-gridfont2', 'leverage agile frameworks', 'hint-four', rect[_x], 0 | (rect[_y] + 10 * 7), 10, state.reset);
                         complete = 0 | (complete && _[_complete]);
                         reset_complete = 0 | (reset_complete && _[_reset_complete]);
                         if (_[_complete] || (state.reset && _[_reset_complete])) {
-                            _ = do_gridfont(uiid + '-gridfont3', 'we got everything you want', 'hint-four', rect[_x], 0 | (rect[_y] + 20 * 10), 10, state.reset);
+                            _ = do_gridfont(uiid + '-gridfont3', 'provide robust synopsis', 'hint-four', rect[_x], 0 | (rect[_y] + 20 * 7), 10, state.reset);
                             complete = 0 | (complete && _[_complete]);
                             reset_complete = 0 | (reset_complete && _[_reset_complete]);
                         }
@@ -564,7 +553,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 }
 
                 let layout = ui.layout_peek();
-                ui.layout_increment2(800, 10 * 7 * 3 + 200);
+                ui.layout_increment2(780, 10 * 7 * 3 + 40);
 
                 context.restore();
             }
@@ -602,14 +591,103 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             return panel;
         }
 
+        /** create random point, with no zero components */
+        function random_anim_vector() {
+            let vecx = 0 | 1;
+            let vecy = 0 | 1;
+            if (Math.random() < 0.5) {
+                vecx = -vecx;
+            }
+            if (Math.random() < 0.5) {
+                vecy = -vecy;
+            }
+            return Point(vecx, vecy);
+        }
+        
+        const anim_items = [];
+        const anim_vectors = [];
+        const anim_colors = [];
+        const anim_color = make_css_color(Color(160, 160, 160, 12));
+        let _bg_init = 0 | false;
+        let _anim_gradient = make_drawbox_gradient(
+            context,
+            400, 400,
+            1000, 1000,
+            Color(0x00, 0xB5, 0xE3, 255),
+            Color(255, 0, 255, 255)
+        );
+
+        function do_background_anim() {            
+            if (!_bg_init) {
+                for(var i=0; i < 100; i++) {
+                    const randx = 0 | (Math.random() * canvas.width*3) - canvas.width;
+                    const randy = 0 | (Math.random() * canvas.height*3) - canvas.height;
+                    anim_items.push(Point(randx, randy));
+                    anim_vectors.push(random_anim_vector());
+                    let alpha = 20 + 0 | Math.random() * 40;
+                    let css = make_css_color(Color(200, 200, 200, alpha))
+                    anim_colors.push(css);
+                }
+                _bg_init = 0 | true;
+            }
+
+            context.beginPath();
+            for (var i = 0; i < anim_items.length; i++) {
+                const item = anim_items[i];
+                const vec = anim_vectors[i];                
+                
+                let prev_index;
+                if (i == 0) {
+                    prev_index = anim_items.length - 1;
+                } else {
+                    prev_index = i - 1;
+                }
+                const prev = anim_items[prev_index];
+
+                context.lineTo(item[_x], item[_y]);                
+
+                // update positions from vectors                
+                item[_x] = 0 | item[_x] + vec[_x];
+                item[_y] = 0 | item[_y] + vec[_y];
+
+                const min_x = 0 | -canvas.width;
+                const max_x = 0 | canvas.width * 2;
+                const min_y = 0 | -canvas.height;
+                const max_y = 0 | canvas.height * 2;
+
+                // reverse vectors when out of bounds
+                if (item[_x] < min_x || item[_x] > max_x) {
+                    vec[_x] = 0 | -vec[_x];
+                }
+                if (item[_y] < min_y || item[_y] > max_y) {
+                    vec[_y] = 0 | -vec[_y];
+                }
+            }
+
+            context.setLineDash([]);
+            context.lineWidth = 1;
+            context.strokeStyle = anim_color; // anim_colors[i];
+            context.stroke();
+
+            const dash_scale = 20
+            context.setLineDash([1*dash_scale, 3*dash_scale, 3*dash_scale, 5*dash_scale, 5*dash_scale, 8*dash_scale, 8*dash_scale, 13*dash_scale]);
+            context.lineWidth = 3;
+            context.strokeStyle = anim_color; // anim_colors[i];
+            context.stroke();
+
+            context.setLineDash([]);
+
+        }
+
         var _test_handle_x = 100;
         var _test_handle_y = 100;
         function do_ui() {
+            do_background_anim();
             do_sidepanel();
-            do_color_panel('color-panel-1', 250, 50, true, true);
-            do_gradient_panel('gradient-panel-1', 1110, 50, true, true);
-            do_scrolltest_panel('scrolltest-panel-1', 1110, 465, true, true);
-            do_gridfont_panel('gridfont-panel-1', 250, 635, true, true);
+            do_color_panel('color panel', 240, 64, true, true);
+            do_gradient_panel('gradient panel', 905, 64, true, true);
+            do_scrolltest_panel('scroll test panel', 1113, 486, true, true);
+            do_gridfont_panel('gridfont panel ', 240, 547, true, true);
         }
 
         function main() {
@@ -620,7 +698,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             if (window_active) {
                 // clear
                 context.beginPath();
-                context.fillStyle = make_css_color(bg_color);
+                context.fillStyle = make_css_color(uidraw.bg_color);
                 context.rect(0, 0, canvas.width, canvas.height);
                 context.fill();
                 context.closePath();
