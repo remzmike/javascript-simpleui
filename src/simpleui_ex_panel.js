@@ -1,38 +1,23 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 
-function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
+// how does panel module know when it's a new frame?
+// need to know new frame so i can reset the collapsed item count to 0
 
+function do_expanded(uiid, rect, state) { // move back to other func later
     const debug_draw = false;
     const debug_color = Color(0, 200, 200, 127);
     const debug_color2 = Color(200, 200, 0, 127);
 
-    console.assert(first_x, 'do_panel_begin: first_x required');
-    console.assert(first_y, 'do_panel_begin: first_y required');
-    if (first_visible == null) first_visible = true;
-    if (first_expanded == null) first_expanded = true;
-
-    let state = ui.get_state(uiid);
-    if (!state) {
-        state = ui.set_state(uiid, {
-            'uiid': uiid,
-            'rect': Rectangle(first_x, first_y, 1, 1),
-            'visible': 0 | first_visible,
-            'expanded': 0 | first_expanded
-        });
-    };
-
-    let rect = state.rect;
-
     let vlayout = ui.layout_push(_vertical, app.panel_layout_padding, rect[_x], rect[_y]); // pops in *_end    
 
-    if (!state.visible) return state;
-
-    let x = rect[_x];
-    let y = rect[_y];
+    //if (!state.visible) return state;    
 
     let dilate = 20;
     let bar_height = 24;
+
+    let x = rect[_x];
+    let y = rect[_y];
 
     let handle_w;
     if (state.expanded) {
@@ -40,47 +25,78 @@ function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
     } else {
         handle_w = 0 | 200;
     }
-
-    handle_w = handle_w + 1; // we move handle left 1 pixel so border overlaps with collapse button, so width needs +1
+    handle_w = handle_w + 1; // move handle left 1 pixel so border overlaps with collapse button, so width needs +1
 
     // todo: later: push_id('handle');
     // or: next_id('-handle'); etc.
 
     let inner = ui.layout_push(_none, vlayout[_padding], vlayout[_x] - dilate, vlayout[_y] - dilate - bar_height);
     {
+        const is_expanded = state.expanded;
+        const is_collapsed = !is_expanded;
+        
+        // draw panel
+        let glyph = 'v';        
         if (state.expanded) {
             let back_rect = Rectangle(inner[_x], inner[_y], rect[_w] + dilate * 2, rect[_h] + dilate * 2 + bar_height);
             let back_rect1 = uidraw.rectangle_erode(back_rect, 1);
             uidraw.rounded_rectangle(back_rect, uidraw.normal_back);
             uidraw.rounded_rectangle(back_rect1, uidraw.panel_color);
+            glyph = '-';
         }
 
-        let glyph = state.expanded ? '-' : '>';
         let text_width = 10; // hax
         let text_ox = 0 | (bar_height / 2 - text_width / 2); // (bar_height/2)-(text_width/2);
         let text_oy = 0 | (text_ox / 2);
+       
+        let _button;
+        let _handle;
 
-        const _button = ui.checkbutton(uiid + '-button', glyph, Rectangle(0, 0, bar_height, bar_height), state.expanded, text_ox, text_oy);
-        const _handle = ui.handle(uiid + '-handle', Rectangle(bar_height - 1, 0, handle_w, bar_height), x, y);
+        let collapsed_x = 200 + ui.state.collapsed_panel_index * 224;
+        let collapsed_y = 1;
 
-        ui.label(uiid, Rectangle(bar_height + 10, 0, handle_w + dilate, bar_height));
-
-        // panel bg
-        if (state.expanded) {
-            if (rect) {
-                let rect0 = Rectangle(rect[_x], rect[_y], rect[_w], rect[_h]);
-                let rect1 = uidraw.rectangle_dilate(rect0, dilate);
-
-                ui.add_hotspot(uiid + '-bg-hotspot', rect1);
-            }
+        if (is_expanded) {
+            let rect1 = uidraw.rectangle_dilate(rect, dilate);
+            ui.add_hotspot(uiid + '-bg-hotspot', rect1);
         }
 
+        // collapsed layout: begin
+        if (is_collapsed) ui.layout_push(_none, 0, collapsed_x, collapsed_y);
+
+        // if this is the first collapsed panel, then also draw background bar
+        if (is_collapsed && ui.state.collapsed_panel_index == 0) {
+            uidraw.rectangle(Rectangle(200, 0, canvas.width-200, 25), uidraw.panel_color);
+        }
+
+        const uiid_handle = uiid + '-handle';
+        _button = ui.checkbutton(uiid + '-button', glyph, Rectangle(0, 0, bar_height, bar_height), state.expanded, text_ox, text_oy);
+        const hrect = Rectangle(bar_height - 1, 0, handle_w, bar_height);
+        _handle = ui.handle(uiid_handle, hrect, x, y);
+        
+        ui.label(uiid, Rectangle(bar_height + 10, 0, handle_w + dilate, bar_height));        
+        
         if (_button[_changed]) {
             state.expanded = 0 | !state.expanded;
         }
+
+        // collapsed layout: end
+        if (!is_expanded) { 
+            ui.layout_pop();
+            ui.state.collapsed_panel_index++;
+        } 
+                
         if (_handle[_changed]) {
-            state.rect[_x] = 0 | _handle[_x1];
-            state.rect[_y] = 0 | _handle[_y1];
+            if (state.expanded) {
+                state.rect[_x] = 0 | _handle[_x1];
+                state.rect[_y] = 0 | _handle[_y1];
+            } else {
+                // if they click collapsed handle, panel expands
+                state.expanded = 0 | !state.expanded;
+                // cancel item_held when they do this... *shrug*
+                if (ui.state.item_held == uiid_handle) {
+                    ui.state.item_held = null;
+                }
+            }
         }
 
     }
@@ -100,6 +116,29 @@ function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {
     ui.layout_pop(); // inner
 
     return state;
+}
+
+function do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded) {    
+    console.assert(first_x, 'do_panel_begin: first_x required');
+    console.assert(first_y, 'do_panel_begin: first_y required');
+    //if (first_visible == null) first_visible = true;
+    if (first_expanded == null) first_expanded = true;
+    
+    //uidraw.label('#' + ui.state.collapsed_panel_index, Point(200, 20*ui.state.collapsed_panel_index), Color(255,255,255,255));    
+
+    let state = ui.get_state(uiid);
+    if (!state) {
+        state = ui.set_state(uiid, {
+            'uiid': uiid,
+            'rect': Rectangle(first_x, first_y, 1, 1),
+            'visible': 0 | true, //first_visible,
+            'expanded': 0 | first_expanded
+        });
+    };
+
+    let rect = state.rect;
+
+    return do_expanded(uiid, rect, state); 
 }
 
 function do_panel_end(uiid) {

@@ -65,6 +65,8 @@ function do_gridfont(uiid, s, name, x, y, scale, reset) {
 
     context.lineWidth = 1;    
 
+    context.strokeStyle = _gridfont_gradient;
+
     for (let i = 0; i < a.length; i++) {
         let letter = a[i];
         if (!_gridfont_chars[letter]) {
@@ -102,14 +104,23 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
     };
 
     const fl = _f[letter]; // font letter
-    const layout = ui.layout_peek();
 
     const segment = state[_segment];
     let partial = state[_partial];
 
+    // opengl and canvas...
+    // so i have perf issue here
+    // draw_line is bad because in canvas it's better to stroke a complex path than many small paths
+    // so that optimization should be possible with the api..
+    // reset_line_batch()
+    // draw_line_batch()
+    // but.. wondering about what this means for opengl drivers...
+    // ... if both drivers allow (or can allow lineto/moveto for multi segment paths)
+    // (does pixi's shader-based canvas-like api allow moveto/lineto?) A: YES, it does...
+    // so my drive could do lineto/moveto at least for now since it seems reasonable to do it with webgl shader api
+    
     // draw lines up to segment count
-    // sometimes segment is > fl.length due to prev frame
-    context.strokeStyle = _gridfont_gradient;
+    // sometimes segment is > fl.length due to prev frame    
     if (segment <= fl.length) {
         for (let i = 0; i < segment; i++) {    
             let a1 = 0 | fl[i][0];
@@ -141,17 +152,6 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
         let p1 = 0 | (x1 + dx * partial / 10);
         let p2 = 0 | (y1 + dy * partial / 10);
         draw_line(x1, y1, p1, p2);
-
-        let cursor_radius = 3;
-        //let cursize = (1-partial) * cursor_radius;
-        let cursize = cursor_radius;
-        let cursize_x2 = 0 | (cursize * 2);
-        context.save();
-        context.strokeStyle = _gridfont_gradient;
-        //context.fillStyle = _gridfont_gradient;
-        DrawBox(p1 - cursize, p2 - cursize, cursize_x2, cursize_x2);
-        //draw_line(Math.random()*2*400,Math.random()*2*500, p1, p2);
-        context.restore();
 
         // i promoted partial from float to int, so new partial 1 == old partial 0.1
         // this means some of the logic changes from 1 to 10, and i divide by 10 for local calcs

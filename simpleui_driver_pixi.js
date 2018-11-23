@@ -177,14 +177,12 @@ function DrawText_Original(text, x, y, color) { // 10-12 ms ff
     }
 }
 
-function DrawBoxInternal(rect, color) {
+function DrawBoxInternal(rect, color, soft) {
     
     const x = rect[_x];
     const y = rect[_y];
     const width = rect[_w];
     const height = rect[_h];
-
-    const soft = m_simpleui.config.drawbox_soft_enable;
 
     //if (color) {
         const rgb = color[_r] << 16 | color[_g] << 8 | color[_b] << 0;
@@ -280,8 +278,8 @@ PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST; // {LINEAR: 0 (default), NE
 let pixi_app = new PIXI.Application({
     width: 512,
     height: 512,
-    antialias: false,
-    transparent: false,
+    antialias: true,
+    transparent: true,
     resolution: 1
 });
 let canvas = pixi_app.view;
@@ -303,6 +301,7 @@ context.rect = function() {};
 context.translate = function() {};
 context.stroke = function() {};
 context.beginPath = function() {};
+context.setLineDash = function() {};
 
 //pixi_app.stage.addChild(graphics);
 

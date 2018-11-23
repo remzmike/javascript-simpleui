@@ -53,16 +53,18 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
         draw_line(layout[_x] + p1_x, layout[_y] + p1_y, layout[_x] + p2_x, layout[_y] + p2_y);
         context.lineWidth = 1;
 
+        const uiid_pt1 = uiid + '-pt1';
         const handle1_rect = Rectangle(p1_x - grab_dim_half, p1_y - grab_dim_half, grab_dim, grab_dim);
-        _ = ui.handle('grad-panel-handle-pt1', handle1_rect, p1_x, p1_y);
+        _ = ui.handle(uiid_pt1, handle1_rect, p1_x, p1_y);
         if (_[_changed]) {
             changed = 0 | changed | _[_changed];
             result_x1 = 0 | Math.min(max_x, Math.max(min_x, _[_x1] + min_x));
             result_y1 = 0 | Math.min(max_y, Math.max(min_y, _[_y1] + min_y));
         }
 
+        const uiid_pt2 = uiid + '-pt2'
         const handle2_rect = Rectangle(p2_x - grab_dim_half, p2_y - grab_dim_half, grab_dim, grab_dim);
-        _ = ui.handle('grad-panel-handle-pt2', handle2_rect, p2_x, p2_y);
+        _ = ui.handle(uiid_pt2, handle2_rect, p2_x, p2_y);
         if (_[_changed]) {
             changed = 0 | changed | _[_changed];
             result_x2 = 0 | Math.min(max_x, Math.max(min_x, _[_x1] + min_x));
@@ -71,9 +73,15 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
 
         const handle1_nub = ui.layout_translated(uidraw.rectangle_erode(handle1_rect, 4));
         uidraw.rectangle(handle1_nub, uidraw.raised_face);
+        if (ui.state.item_hovered == uiid_pt1) {
+            uidraw.rectangle(handle1_nub, uidraw.raised_accent);
+        }
 
         const handle2_nub = ui.layout_translated(uidraw.rectangle_erode(handle2_rect, 4));
         uidraw.rectangle(handle2_nub, uidraw.raised_face);
+        if (ui.state.item_hovered == uiid_pt2) {
+            uidraw.rectangle(handle2_nub, uidraw.raised_accent);
+        }
     }
     ui.layout_pop();
     ui.layout_increment2(dim_w, 0);

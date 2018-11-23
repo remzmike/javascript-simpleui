@@ -195,6 +195,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
             let vert1 = ui.layout_push(_vertical, pad, pad, pad);
             {
+                ui.label('simpleui v0.3', Rectangle(0, 0, 100, 24));
+                
                 // reload
                 _ = ui.button('sidepanel-reload-button', 'reload', Rectangle(0, 0, 100, 24));
                 if (_[_clicked]) {
@@ -259,6 +261,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 do_ms_graph('sidepanel-actual-graph', 'cpu time graph', app.main_proc_time, 20);
 
                 // canvas size hack
+                // disabling until i do it with flicker
+                /*
                 ui.label('canvas trim', Rectangle(0, 0, 100, 20));
                 ui.layout_push(_horizontal);
                 _ = ui.slider('sidepanel-canvas-size-hack-slider', Rectangle(0, 0, 100, 20), 0, 60, app.canvas_size_hack, '');
@@ -268,6 +272,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 }
                 ui.label(app.canvas_size_hack + 'px', Rectangle(0, 0, 100, 20));
                 ui.layout_pop();
+                */
 
                 // show/hides
                 /*{
@@ -560,6 +565,79 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             do_panel_end(inner_uiid);
         }
 
+        let _linestar_segments = 13;
+        let _linestar_segments_direction = 1;
+        let _linestar_segments_accumulator = 0;
+        let _linestar_segments_accumulator_max = 8;
+        let _linestar_joints = 12;
+        let _linestar_joints_direction = 1;
+        let _linestar_joints_accumulator = 0;
+        let _linestar_joints_accumulator_max = 5;
+        let _linestar_webs = 5;        
+        let _linestar_anim_enabled = 0 | false;
+        function do_linestar_panel(uiid, first_x, first_y, first_visible, first_expanded) {
+            let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
+
+            if (panel.expanded) {
+                let _ = do_linestar_edit(uiid + '-linestar-edit', _linestar_segments, _linestar_joints, _linestar_webs);
+                if (_[_changed]) {
+                    _linestar_segments = _[1];
+                    _linestar_joints = _[2];
+                    _linestar_webs = _[3];
+                } else if (_linestar_anim_enabled) {
+                    _linestar_segments_accumulator++;
+                    if (_linestar_segments > 20 || _linestar_segments < 3) {
+                        _linestar_segments = Math.max(3, Math.min(20, _linestar_segments));
+                        _linestar_segments_direction = -_linestar_segments_direction;
+                    }                    
+                    if (_linestar_segments_accumulator == _linestar_segments_accumulator_max) {
+                        _linestar_segments = _linestar_segments + _linestar_segments_direction;
+                        _linestar_segments_accumulator = 0;
+                    }
+
+                    _linestar_joints_accumulator++;
+                    if (_linestar_joints > 20 || _linestar_joints < 3) {
+                        _linestar_joints = Math.max(3, Math.min(20, _linestar_joints));
+                        _linestar_joints_direction = -_linestar_joints_direction;
+                    }                    
+                    if (_linestar_joints_accumulator == _linestar_joints_accumulator_max) {
+                        _linestar_joints = _linestar_joints + _linestar_joints_direction;
+                        _linestar_joints_accumulator = 0;
+                    }                    
+                }
+
+                const label = ( _linestar_anim_enabled ? 'disable' : 'enable' ) + ' idle animation';
+                _ = ui.checkbutton(uiid + '-enable-anim-button', label, Rectangle(0, 0, 200, 24), _linestar_anim_enabled);
+                if (_[_changed]) {
+                    _linestar_anim_enabled = _[_value];
+                }
+
+                const rect = Rectangle(0, 0, 200, 20);
+                ui.layout_push(_horizontal);
+                _ = ui.slider(uiid + '-slider-1', rect, 1, 20, _linestar_segments_accumulator_max, '');
+                if (_[_changed]) {
+                    _linestar_segments_accumulator = 0;
+                    _linestar_segments_accumulator_max = 0 | _[_value];
+                }
+                ui.label('segment anim delay', rect);
+                ui.layout_pop();
+
+                ui.layout_push(_horizontal);
+                _ = ui.slider(uiid + '-slider-2', rect, 1, 20, _linestar_joints_accumulator_max, '');
+                if (_[_changed]) {
+                    _linestar_joints_accumulator = 0;
+                    _linestar_joints_accumulator_max = 0 | _[_value];
+                }
+                ui.label('joint anim delay', rect);
+                ui.layout_pop();
+                
+
+            }
+
+            do_panel_end(uiid);
+            return panel;
+        }            
+
         function do_scrolltest_panel(uiid, first_x, first_y, first_visible, first_expanded) {
 
             let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
@@ -607,7 +685,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
         const anim_items = [];
         const anim_vectors = [];
         const anim_colors = [];
-        const anim_color = make_css_color(Color(160, 160, 160, 12));
+        const anim_color1 = make_css_color(Color(255, 255, 255, 8));
+        const anim_color2 = make_css_color(Color(255, 255, 255, 8));
         let _bg_init = 0 | false;
         let _anim_gradient = make_drawbox_gradient(
             context,
@@ -666,13 +745,13 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
             context.setLineDash([]);
             context.lineWidth = 1;
-            context.strokeStyle = anim_color; // anim_colors[i];
+            context.strokeStyle = anim_color1; // anim_colors[i];
             context.stroke();
 
             const dash_scale = 20
             context.setLineDash([1*dash_scale, 3*dash_scale, 3*dash_scale, 5*dash_scale, 5*dash_scale, 8*dash_scale, 8*dash_scale, 13*dash_scale]);
             context.lineWidth = 3;
-            context.strokeStyle = anim_color; // anim_colors[i];
+            context.strokeStyle = anim_color2; // anim_colors[i];
             context.stroke();
 
             context.setLineDash([]);
@@ -681,13 +760,24 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
         var _test_handle_x = 100;
         var _test_handle_y = 100;
-        function do_ui() {
+        function do_ui() {                        
             do_background_anim();
-            do_sidepanel();
-            do_color_panel('color panel', 240, 64, true, true);
-            do_gradient_panel('gradient panel', 905, 64, true, true);
-            do_scrolltest_panel('scroll test panel', 1113, 486, true, true);
-            do_gridfont_panel('gridfont panel ', 240, 547, true, true);
+            do_sidepanel();                        
+
+            ui.label('This is not html. It is an image updated by javascript.', Rectangle(220, 14, 400, 0));
+            
+            const row_x0 = 240;
+            const row_y0 = 90;
+            do_linestar_panel('linestar panel', row_x0, row_y0, true, true);
+
+            const row_x1 = row_x0 + 465;
+            do_color_panel('color panel', row_x1, row_y0, true, true);
+            
+            const row_x2 = row_x1 + 666;
+            do_gradient_panel('gradient panel', row_x2, row_y0, true, true);
+
+            do_gridfont_panel('gridfont panel ', row_x1, 547+27, true, true);
+            do_scrolltest_panel('scroll test panel', 1579, 486+25, true, true);            
         }
 
         function main() {

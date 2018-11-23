@@ -101,10 +101,12 @@ const uistate = {
     layout_pool: _layout_pool,
     layout_count: 0,
     mouselocation: Point(0, 0),
+    item_hovered: null,
     item_held: null,
     // frame items / 'events'
     item_went_down: false,
     item_went_downup: false,
+    collapsed_panel_index: 0
 };
 
 function Hotspot(id, x, y, w, h) {
@@ -282,41 +284,26 @@ function layout_push(mode, padding, x, y) {
     return layout; // so you can modify it (values in it)
 }
 
-function layout_pop(increment) {
-    if (increment == null) { increment = true; }
-    
-    //const child = layout_stack.pop();
+function layout_pop() {        
+    // was: const child = layout_stack.pop();
     const child = layout_peek();
+    // since we use a pool, pop means decrement layout_count
     uistate.layout_count = uistate.layout_count - 1;
-
-    // increment underlying layout by popped layout
+    // this peek gives what was 2nd layout in stack since we decremented count
     const parent = layout_peek();
-    if ((parent != null) && increment) {
-        //let dx = child[_x] - child[_ox];
-        //let dy = child[_y] - child[_oy];
-        //print('popping, delta x,y:', w, h);
-        //print('popping, max w,h:', result[_maxw], result[_maxh]);
-        // increment parent by prev
+
+    // increment parent layout and update parent total dimensions
+    if (parent) {
         layout_increment2(child[_maxw], child[_maxh]);
-        // update totals when... parent is
-        // this is flcking confusing, but it's right
-        if (parent[_mode] == _vertical && child[_mode] == _horizontal) {
-            // now we do some magik
-            parent[_totalw] = Math.max(parent[_totalw], child[_x] - child[_ox]);
-            parent[_totalh] = Math.max(parent[_totalh], parent[_y] - parent[_oy]);
-        }
-        if (parent[_mode] == _horizontal && child[_mode] == _vertical) {
-            // untested. nolive
-            parent[_totalw] = Math.max(parent[_totalw], parent[_x] - parent[_oy]);
-            parent[_totalh] = Math.max(parent[_totalh], child[_y] - child[_oy]);
-        }
+        parent[_totalw] = Math.max(parent[_totalw], child[_x] - child[_ox]);
+        parent[_totalh] = Math.max(parent[_totalh], child[_y] - child[_oy]);
     }
     return child;
 }
 
 function layout_increment2(w, h) {
     const layout = layout_peek();
-    if (layout != null) {
+    if (layout) {
         if (layout[_mode] == _vertical) {
             const dy = h + layout[_padding];
             layout[_y] += dy;
@@ -394,11 +381,15 @@ function run_all_ticks() {
 
 function main_loop() {
 
+    console.assert(uistate.layout_count === 0);
+
     // updates
     uistate.mouselocation[_x] = 0 | GetCursorX();
     uistate.mouselocation[_y] = 0 | GetCursorY();
 
     run_all_ticks();
+
+    console.assert(uistate.layout_count === 0);
 
     //{ item_hovered logic
     uistate.item_hovered = null;
@@ -462,14 +453,17 @@ function main_loop() {
         }
     }
 
+    console.assert(uistate.layout_count === 0);
+
     // per-frame resets
     // ~pools~
     uistate.layout_count = 0 | 0;
     uistate.hotspot_count = 0 | 0;
     // ~events~
     uistate.item_went_down = false;
-    uistate.item_went_downup = false;
-
+    uistate.item_went_downup = false;   
+    // this probably won't stay here
+    uistate.collapsed_panel_index = 0; 
 }
 
 function on_tick() {

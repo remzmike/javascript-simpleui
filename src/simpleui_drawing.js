@@ -8,8 +8,8 @@ export let default_line_color = Color(255, 255, 255, 255);
 export let default_text_color = Color(255, 255, 255, 255);
 //export let default_text_color = Color(0x93, 0xa1, 0xa1, 255);
 
-export let accent = Color(118, 153, 157, 127);
-export let bg_color = Color(91, 102, 96, 255);
+export let accent = Color(120, 180, 140, 127);
+export let bg_color = Color(91, 98, 96, 255);
 export let panel_color = Color(46, 46, 46, 255);
 
 export let normal_back = Color(36, 36, 36, 255); // _sol_bg2;
@@ -191,13 +191,12 @@ function draw_slider(uiid, rect, state, min, max, value, handle_label) {
     let progrect = Rectangle(rect2[_x], rect2[_y], progw, rect2[_h]);
     
     // handle
-    let holder = rect1;
-    let handledim = 0 | holder[_h];
+    let handledim = 0 | rect1[_h];
     let handlew = handledim / 4;
     let handlepos = 0 | ((rect1[_w] - handlew) * value_percent + handledim / 2);
-    const rectx = 0 | (holder[_x] + handlepos - handledim / 2);
-    const recty = 0 | (holder[_y]);
-    let hrect = Rectangle(rectx, recty, handlew, handledim);
+    const rectx = 0 | (rect1[_x] + handlepos - handledim / 2);
+    const recty = 0 | (rect1[_y]);
+    let hrect = Rectangle(rectx, recty+1, handlew, handledim-2);
 
     draw_rectangle(rect, normal_back);
     draw_rounded_rectangle(progrect, accent);
@@ -210,13 +209,7 @@ function draw_slider(uiid, rect, state, min, max, value, handle_label) {
         draw_rectangle(hrect, raised_face);
     }
     if (handle_label) {
-        //const textx = 0 | (hrect[_x] + hrect[_w] / 2 - 4);
-        let textx;
-        if (value_percent < 0.85) {
-            textx = 0 | (rect[_x] + rect[_w] - 16);
-        } else {
-            textx = 0 | (rect[_x] + rect[_w] *.7);
-        }
+        const textx = 0 | (rect[_x] + rect[_w] - 16);
         const texty = 0 | (hrect[_y] + hrect[_h] / 2 - 8);
         draw_text(handle_label, textx, texty, Color(0, 0, 0, 127));
     }
@@ -246,13 +239,12 @@ function draw_vslider(uiid, rect, state, min, max, value, handle_label) {
     let progrect = Rectangle(rect2[_x], rect2[_y], rect2[_w], progh);
 
     // handle
-    let holder = rect1;
-    let handledim = 0 | holder[_w];
+    let handledim = 0 | rect1[_w];
     let handleh = 0 | handledim / 4;
     let handlepos = 0 | ((rect1[_h] - handleh) * value_percent + handledim / 2);
-    const rectx = 0 | holder[_x];
-    const recty = 0 | (holder[_y] + handlepos - handledim / 2);
-    let hrect = Rectangle(rectx, recty, handledim, handleh);
+    const rectx = 0 | rect1[_x];
+    const recty = 0 | (rect1[_y] + handlepos - handledim / 2);
+    let hrect = Rectangle(rectx+1, recty, handledim-2, handleh);
 
     draw_rectangle(rect, normal_back);
     draw_rounded_rectangle(progrect, accent);
@@ -266,13 +258,7 @@ function draw_vslider(uiid, rect, state, min, max, value, handle_label) {
     }
     if (handle_label) {
         const textx = 0 | (hrect[_x] + hrect[_w] / 2 - 5);
-        let texty;
-        if (value_percent < 0.85) {
-            texty = 0 | (rect[_y] + rect[_h] - 16);
-        } else {
-            texty = 0 | (rect[_y] + rect[_h] *.7);
-        }
-        //const texty = 0 | (hrect[_y] + hrect[_h] / 2 - 6);
+        const texty = 0 | (rect[_y] + rect[_h] - 16);
         draw_text(handle_label, textx, texty, Color(0, 0, 0, 127));
     }
 }
