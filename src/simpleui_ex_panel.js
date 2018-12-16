@@ -40,13 +40,13 @@ function do_expanded(uiid, rect, state) { // move back to other func later
         if (state.expanded) {
             let back_rect = Rectangle(inner[_x], inner[_y], rect[_w] + dilate * 2, rect[_h] + dilate * 2 + bar_height);
             let back_rect1 = uidraw.rectangle_erode(back_rect, 1);
-            uidraw.rounded_rectangle(back_rect, uidraw.normal_back);
-            uidraw.rounded_rectangle(back_rect1, uidraw.panel_color);
+            uidraw.rectangle_soft(back_rect, uidraw.normal_back);
+            uidraw.rectangle_soft(back_rect1, uidraw.panel_color);
             glyph = '-';
         }
 
         let text_width = 10; // hax
-        let text_ox = 0 | (bar_height / 2 - text_width / 2); // (bar_height/2)-(text_width/2);
+        let text_ox = 0 | (bar_height / 2 - text_width / 2);
         let text_oy = 0 | (text_ox / 2);
        
         let _button;
@@ -70,6 +70,7 @@ function do_expanded(uiid, rect, state) { // move back to other func later
 
         const uiid_handle = uiid + '-handle';
         _button = ui.checkbutton(uiid + '-button', glyph, Rectangle(0, 0, bar_height, bar_height), state.expanded, text_ox, text_oy);
+
         const hrect = Rectangle(bar_height - 1, 0, handle_w, bar_height);
         _handle = ui.handle(uiid_handle, hrect, x, y);
         
@@ -148,6 +149,7 @@ function do_panel_end(uiid) {
         const layout = ui.layout_peek();
         state.rect[_w] = layout[_totalw];
         state.rect[_h] = layout[_totalh];
+        // this means one frame of latency between content updates and panel autosizing
     }
     ui.layout_pop(); // popping the layout created in do_panel_begin
 }

@@ -1,29 +1,50 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 
-function angled_norm_line(rad, scale) {
-    const x = Math.sin(rad) * scale;
-    const y = Math.cos(rad) * scale;
-    return [x, y];
-}
+const ends = [];
 
+/*
+this function seems to show an interesting performance issue with simpleui > 0.3.1
+
+with new deferred commands rendering, performance chokes after a high number of commands here
+
+maybe the commands could be made smaller:
+eg. (beginpath, 1, move_to, 4,x1,y1,x2,y2, line_to, 4,x3,y3,x4,y4) // 14 elements
+to. (path, 8, x1, y1, x2, y2, x3, y3, x4, y4) // 10 elements
+(it's a significant percentage but probably not enough for me)
+
+i think this is happening because some stack/buffer limit is reached and jit deopts
+
+giant commands buffer = bad performance
+
+immediate rendering benefits from extra closeness to cpu
+
+you should be able to choose deferred or immediate rendering
+not just deferred, not just immediate
+although if i have to pick one i should probably go immediate
+
+i think... support both, eventually, but probably default to immediate for a long while
+
+BUT, still use a uidraw layer of indirection (not directly calling on context)
+AND, still use push_/pop_ uidraw api instead of sets
+*/
 function draw_star(uiid, segments, joints, webs, rings) {
+
+    //ends.length = 0;
+    const ends = []; // todo: pick one of these two techniques ^
 
     let incr = Math.PI * 2 / segments;
 
-    let ends = [];
-
-    const peek = ui.layout_peek();
-    context.beginPath();
-    //context.translate(peek[_x], peek[_y]);
-    context.lineWidth = 1;
-    context.strokeStyle = make_css_color(Color(200, 220, 200, 127));
-
     for (let i = 0; i < segments; i++) {
         let rad = i * incr;
-        let pt = angled_norm_line(rad, 200);
+        let pt = ui.angled_norm_line(rad, 200);
         ends.push(pt);
     }
+
+    const peek = ui.layout_peek();        
+    uidraw.begin_path();
+    const stroke_color = make_css_color(Color(200, 220, 200, 127));
+    uidraw.push_strokestyle(stroke_color);
 
     // webs
     webs = Math.min(webs, joints);
@@ -39,8 +60,8 @@ function draw_star(uiid, segments, joints, webs, rings) {
             let y1 = pt1[_y];
             for (let j = 0; j < webs; j++) {
                 let p0 = (j + 1) / joints;
-                context.moveTo(peek[_x] + x0 * p0, peek[_y] + y0 * p0);
-                context.lineTo(peek[_x] + x1 * p0, peek[_y] + y1 * p0);
+                uidraw.move_to(peek[_x] + x0 * p0, peek[_y] + y0 * p0);
+                uidraw.line_to(peek[_x] + x1 * p0, peek[_y] + y1 * p0);
                 //console.log(x0*p0, y0*p0, x1*p0, y1*p0);
             }
         }
@@ -88,13 +109,13 @@ function draw_star(uiid, segments, joints, webs, rings) {
         for (let j = 0; j < joints; j++) {
             let p0 = (j + 1) / joints;
             let p1 = 1 - p0;
-            context.moveTo(peek[_x] + x0 * p0, peek[_y] + y0 * p0);
-            context.lineTo(peek[_x] + x1 * p1, peek[_y] + y1 * p1);
+            uidraw.move_to(peek[_x] + x0 * p0, peek[_y] + y0 * p0);
+            uidraw.line_to(peek[_x] + x1 * p1, peek[_y] + y1 * p1);
         }
     }
 
-    context.stroke();
-    //context.translate(-peek[_x], -peek[_y]);
+    uidraw.stroke();
+    uidraw.pop_strokestyle();
 }
 
 // idea::
@@ -105,7 +126,9 @@ function do_linestar_edit(uiid, segments, joints, webs) {
     const rings = 19;
 
     const vertical = ui.layout_push(_vertical);
-    ui.rectangle(Rectangle(0, 0, 400, 400), uidraw.normal_back);
+    const bg_rect = ui.layout_translated(Rectangle(0, 0, 400, 400));
+    uidraw.rectangle_soft(bg_rect, uidraw.normal_back);
+    ui.layout_increment2(400, 400);
 
     ui.layout_push(_none, 0, vertical[_x] + 200, vertical[_y] - 200);
     draw_star(
@@ -157,7 +180,6 @@ function do_linestar_edit(uiid, segments, joints, webs) {
     ui.layout_pop();
     
     _ = ui.layout_pop(); // vertical
-    ui.layout_increment2(0, _[_totalh] - 400);    
 
     return [
         0 | changed,

@@ -44,7 +44,7 @@ module.exports = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "bundle.js",
+    filename: "simpleui-bundle.js",
     libraryTarget: 'window'
   },
   module: {
@@ -53,6 +53,16 @@ module.exports = {
         test: /\.js$/,
         exclude: /(node_modules)/,
         loader: "babel-loader",
+      },
+      {
+        test: /\.(png|jp(e*)g|svg)$/,  
+        use: [{
+            loader: 'url-loader',
+            options: { 
+                limit: 8000,
+                name: 'images/[hash]-[name].[ext]'
+            } 
+        }]
       }
     ]
   }

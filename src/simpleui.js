@@ -1,5 +1,15 @@
 import * as m_simpleui_drawing from './simpleui_drawing.js';
+import * as m_simpleui_ex_gridfont from './simpleui_ex_gridfont.js';
+import * as m_simpleui_ex_gradient from './simpleui_ex_gradient.js';
+import * as m_simpleui_driver_html5_canvas from './simpleui_driver_html5_canvas.js';
+import * as m_simpleui_driver_pixi_webgl from './simpleui_driver_pixi_webgl.js';
+import * as consts from './simpleui_consts.js';
+import debounce from './debounce.js';
+import throttle from './throttle.js';
 
+let driver;
+
+// https://github.com/petkaantonov/bluebird/wiki/Optimization-killers
 // https://news.ycombinator.com/item?id=15065992 (How to write optimized JavaScript)
 
 /*
@@ -20,28 +30,41 @@ This explains why forcing bools to SMI prevents deopt and increases performance.
 (Because as SMI they can avoid any interaction with heap)
 
 I didn't know the same happens for `null` and `undefined`. Maybe I need to deal with that.
+(Yeah, probably does)
+
 */
 
-let uidraw = m_simpleui_drawing;
+// future: asm.js or walt
 
-let config = {
-    drawhotspots_enable: false,
-    drawbox_soft_enable: true,
-    drawbox_gradient_enable: true,
-    drawtext_enable: true,
-    drawtext_bitmap: true,
-    drawbox_gradient: make_drawbox_gradient(
-        context,
-        uidraw.box_gradient.x1, uidraw.box_gradient.y1,
-        uidraw.box_gradient.x2, uidraw.box_gradient.y2,
-        uidraw.box_gradient.color_stop1,
-        uidraw.box_gradient.color_stop2
-    ),
-}
+const uidraw = m_simpleui_drawing;
+
+let config; // set in this module's initialize
+
+// returned by driver's initialize during this module's initialize
+let context;
+let canvas;
+
+let debug_draw_debuglines = 0 | false;
+let debuglines = [];
+
 let component_state = {};
 
-let debug_draw_debuglines = false;
-let debuglines = [];
+const _x = consts._x;
+const _y = consts._y;
+const _w = consts._w;
+const _h = consts._h;
+const _ox = consts._ox;
+const _oy = consts._oy;
+const _mode = consts._mode;
+const _padding = consts._padding;
+const _maxw = consts._maxw;
+const _maxh = consts._maxh;
+const _totalw = consts._totalw;
+const _totalh = consts._totalh;
+const _none = consts._none;
+const _vertical = consts._vertical;
+const _horizontal = consts._horizontal;
+const _left = consts._left;
 
 // someone's jit probably likes this
 //const hotspot_element_hint = Hotspot('_', 0, 0, 1, 1);
@@ -56,42 +79,8 @@ C:  4.454ms          [[x1,y1], [x2,y2], ...]
 D:  5.917ms          [x1, y1, x2, y2, ...]
 E: 80.101ms          [{x1,y1}, {x2,y2}, ...] (as .x and .y)*/
 
-function init_hotspot_rects(count) {
-    let a = [rect_element_hint];
-    for (let i = 0; i < count; i++) {
-        //a.push(Hotspot('xxxx-yyyy-zzzz', 0, 0, 1, 1));
-        a.push(Rectangle(0, 0, 1, 1));
-    }
-    return a;
-}
-
 const _hotspot_rects = init_hotspot_rects(2000);
-
-function init_hotspot_ids(count) {
-    let a = ['xxxx-yyyy-zzzz', 'aaaa-bbbb-cccc'];
-    for (let i = 0; i < count; i++) {
-        a.push('xxxx-yyyy-zzzz');
-    }
-    return a;
-}
-
 const _hotspot_ids = init_hotspot_ids(2000);
-
-function init_layout_pool(count) {
-    let a = [layout_element_hint];
-    for (let i = 0; i < count; i++) {
-        a.push(Layout(
-            0, 0, 0, 0, // x y ox oy
-            0, // mode
-            0, // padding
-            0, 0, //  maxw maxh
-            0, // totalw
-            0, // totalh    
-        ));
-    }
-    return a;
-}
-
 const _layout_pool = init_layout_pool(2000);
 
 const uistate = {
@@ -106,8 +95,80 @@ const uistate = {
     // frame items / 'events'
     item_went_down: false,
     item_went_downup: false,
-    collapsed_panel_index: 0
+    mouse_went_up: false,
+    collapsed_panel_index: 0,
 };
+
+let _g_handle_delta_x = 0 | 0;
+let _g_handle_delta_y = 0 | 0;
+
+function initialize(options) {
+    config = {
+        drawhotspots_enable: false,
+        drawbox_gradient_enable: true,
+        drawtext_enable: true,
+        drawtext_bitmap: true,
+        drawbox_gradient: null,
+    };
+
+    if (options.driver == null || options.driver == 'html5-canvas') {
+        m_simpleui_driver_html5_canvas.initialize(options.canvasId);
+        driver = m_simpleui_driver_html5_canvas;
+    } else if (options.driver == 'pixi-webgl') {
+        m_simpleui_driver_pixi_webgl.initialize();
+        driver = m_simpleui_driver_pixi_webgl;
+    } else {
+        console.error('invalid options', options);
+    }
+
+    context = driver.GetContext();
+    canvas = driver.GetCanvas();
+
+    m_simpleui_ex_gridfont.initialize();
+    m_simpleui_ex_gradient.initialize();
+}
+
+function make_css_color(color) {
+    let use_alpha = config.drawbox_gradient_enable;
+
+    if (use_alpha) {
+        return `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, ${color[_a] / 255})`;
+    } else {
+        return `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, 1)`;
+    }
+}
+
+function init_hotspot_rects(count) {
+    let a = [rect_element_hint];
+    for (let i = 0; i < count; i++) {
+        //a.push(Hotspot('xxxx-yyyy-zzzz', 0, 0, 1, 1));
+        a.push(Rectangle(0, 0, 1, 1));
+    }
+    return a;
+}
+
+function init_hotspot_ids(count) {
+    let a = ['xxxx-yyyy-zzzz', 'aaaa-bbbb-cccc'];
+    for (let i = 0; i < count; i++) {
+        a.push('xxxx-yyyy-zzzz');
+    }
+    return a;
+}
+
+function init_layout_pool(count) {
+    let a = [layout_element_hint];
+    for (let i = 0; i < count; i++) {
+        a.push(Layout(
+            0, 0, 0, 0, // x y ox oy
+            0, // mode
+            0, // padding
+            0, 0, //  maxw maxh
+            0, // totalw
+            0, // totalh
+        ));
+    }
+    return a;
+}
 
 function Hotspot(id, x, y, w, h) {
     console.assert(id != null, 'hotspot with null id');
@@ -144,6 +205,16 @@ function Layout(x, y, ox, oy, mode, padding, maxw, maxh, totalw, totalh) {
         0 | maxh,
         0 | totalw,
         0 | totalh
+    ];
+}
+
+/** make rgba color from unsigned bytes [0-255] (Smi's) */
+function Color(r, g, b, a) {
+    return [
+        0 | r,
+        0 | g,
+        0 | b,
+        0 | a
     ];
 }
 
@@ -189,6 +260,7 @@ function set_state(uiid, state) {
     return state;
 }
 
+// this way avoids deopt
 function rectangle_contains(x1, y1, w, h, pt_x, pt_y) {
     const x2 = 0 | (x1 + w);
     const y2 = 0 | (y1 + h);
@@ -196,38 +268,7 @@ function rectangle_contains(x1, y1, w, h, pt_x, pt_y) {
     return b;
 }
 
-// seriously unable to get this one to avoid deopt
-function rectangle_contains_old(rect, pt) {
-    //console.assert(rect.length === 4)
-    //console.assert(pt.length === 2)
-    m_v8.assert_smi(_x);
-    m_v8.assert_smi(_y);
-    m_v8.assert_smi(_w);
-    m_v8.assert_smi(_h);
-    m_v8.assert_smi(rect[_x]);
-    m_v8.assert_smi(rect[_y]);
-    m_v8.assert_smi(rect[_w]);
-    m_v8.assert_smi(rect[_h]);
-    m_v8.assert_smi(pt[_x]);
-    m_v8.assert_smi(pt[_y]);
-    // bools/null/undefined are reference values, the value is on the heap, references to value go on stack (i assume)
-    const x1 = 0 | rect[_x];
-    const y1 = 0 | rect[_y];
-    const w = 0 | rect[_w];
-    const h = 0 | rect[_h];
-    const pt_x = 0 | pt[_x];
-    const pt_y = 0 | pt[_y];
-    // making this code match the one with explicit params as closely as possible to see if it still deopts
-    // what the heck i think it worked...
-    //     is it because i am putting `0|` as expression prefix vs postfix?
-    //     is it because i put everything in individual vars? seems unlikely
-    const x2 = 0 | (x1 + w);
-    const y2 = 0 | (y1 + h);
-    const b = 0 | (0 | (pt_x >= x1) && 0 | (pt_x <= x2) && 0 | (pt_y >= y1) && 0 | (pt_y <= y2));
-    return b;
-}
-
-function calc_drawstate(uiid) {    
+function calc_drawstate(uiid) {
     return [
         0 | (uistate.item_hovered == uiid),
         0 | (uistate.item_held == uiid)
@@ -267,7 +308,9 @@ function layout_push(mode, padding, x, y) {
             padding = prev[_padding];
         }
     }
-      
+
+    console.assert(uistate.layout_count >= 0);
+
     const layout = _layout_pool[uistate.layout_count++];
 
     layout[_x] = x;
@@ -284,7 +327,9 @@ function layout_push(mode, padding, x, y) {
     return layout; // so you can modify it (values in it)
 }
 
-function layout_pop() {        
+function layout_pop() {
+    console.assert(uistate.layout_count > 0);
+
     // was: const child = layout_stack.pop();
     const child = layout_peek();
     // since we use a pool, pop means decrement layout_count
@@ -294,9 +339,21 @@ function layout_pop() {
 
     // increment parent layout and update parent total dimensions
     if (parent) {
-        layout_increment2(child[_maxw], child[_maxh]);
-        parent[_totalw] = Math.max(parent[_totalw], child[_x] - child[_ox]);
-        parent[_totalh] = Math.max(parent[_totalh], child[_y] - child[_oy]);
+
+        // sub-layout
+        if (child[_mode] == _none) {
+                
+        } else {
+            layout_increment2(child[_maxw], child[_maxh]);
+            parent[_totalw] = Math.max(parent[_totalw], child[_x] - child[_ox]);
+            parent[_totalh] = Math.max(parent[_totalh], child[_y] - child[_oy]);
+    
+            if (parent[_mode] == _horizontal) {
+                parent[_x] = child[_ox] + child[_totalw] + parent[_padding];
+            } else if (parent[_mode] == _vertical) {
+                parent[_y] = child[_oy] + child[_totalh] + parent[_padding];
+            }
+        }
     }
     return child;
 }
@@ -316,6 +373,7 @@ function layout_increment2(w, h) {
             layout[_totalw] = layout[_x] - layout[_ox];
             layout[_totalh] = Math.max(layout[_totalh], h);
             layout[_maxh] = layout[_totalh];
+        } else if (layout[_mode] == _none) {
         }
         if (layout[_mode] != _none) {
             layout[_maxw] = Math.max(layout[_maxw], w);
@@ -326,9 +384,7 @@ function layout_increment2(w, h) {
 
 /** modify layout by input rect */
 function layout_increment(rect) {
-    const w = rect[_w];
-    const h = rect[_h];
-    return layout_increment2(w, h);
+    return layout_increment2(rect[_w], rect[_h]);
 }
 
 /** translate layout-relative rect to absolute rect by adding their coordinates */
@@ -350,7 +406,7 @@ function on_mousepressed(x, y, button) {
     if (button == _left) {
         uistate.item_went_down = uistate.item_hovered;
         uistate.item_held = uistate.item_hovered;
-        //console.log('[item went down]', uistate.item_hovered);
+        console.log('[item went down]', uistate.item_hovered);
     }
 }
 
@@ -358,36 +414,22 @@ function on_mousereleased(x, y, button) {
     if (button == _left) {
         if (uistate.item_held == uistate.item_hovered) {
             uistate.item_went_downup = uistate.item_hovered;
-            //console.log('[item went downup]', uistate.item_hovered);
+            console.log('[item went downup]', uistate.item_hovered);
         }
+        uistate.mouse_went_up = 0 | true;
         uistate.item_held = null;
     }
 }
 
-// collect ticks here, run them later
-let tick_functions = [];
-function add_tick(fn) {
-    tick_functions.push(fn);
-}
-
-function run_all_ticks() {
-    //print('run_all_ticks', #tick_functions)
-    for (let i = 0; i < tick_functions.length; i++) {
-        const fn = tick_functions[i];
-        //print('!');
-        fn();
-    }
-}
-
-function main_loop() {
+function run(fn) {
 
     console.assert(uistate.layout_count === 0);
 
     // updates
-    uistate.mouselocation[_x] = 0 | GetCursorX();
-    uistate.mouselocation[_y] = 0 | GetCursorY();
+    uistate.mouselocation[_x] = 0 | driver.GetCursorX();
+    uistate.mouselocation[_y] = 0 | driver.GetCursorY();
 
-    run_all_ticks();
+    fn();
 
     console.assert(uistate.layout_count === 0);
 
@@ -412,7 +454,7 @@ function main_loop() {
             0 | hotspot_rect[_x],
             0 | hotspot_rect[_y],
             0 | hotspot_rect[_w],
-            0 | hotspot_rect[_h],            
+            0 | hotspot_rect[_h],
             0 | uistate.mouselocation[_x],
             0 | uistate.mouselocation[_y]
         );
@@ -424,6 +466,8 @@ function main_loop() {
     //}
 
     if (uistate.item_held) {
+        document.body.style.cursor = "grabbing";
+    } else if (uistate.item_hovered) {
         document.body.style.cursor = "pointer";
     } else {
         document.body.style.cursor = "";
@@ -436,12 +480,12 @@ function main_loop() {
         debuglines.push('item_held: ' + uistate.item_held || '');
         debuglines.push('mouse x: ' + mousex);
         debuglines.push('mouse y: ' + mousey);
-        debuglines.push('hotspot pool: ' + uistate.hotspot_count + '/' + uistate.hotspot_pool.length);
+        //debuglines.push('hotspot pool: ' + uistate.hotspot_count + '/' + uistate.hotspot_pool.length);
         debuglines.push('layout pool: ' + uistate.layout_count + '/' + uistate.layout_pool.length);
         for (let i = 0; i < debuglines.length; i++) {
             const line = debuglines[i];
             const yinc = i * 20;
-            DrawText(line, 120, 30 + yinc, Color(255, 0, 255, 255));
+            uidraw.text(line, 120, 30 + yinc, Color(255, 0, 255, 255));
         }
         debuglines = [];
     }
@@ -460,20 +504,11 @@ function main_loop() {
     uistate.layout_count = 0 | 0;
     uistate.hotspot_count = 0 | 0;
     // ~events~
-    uistate.item_went_down = false;
-    uistate.item_went_downup = false;   
+    uistate.item_went_down = 0 | false;
+    uistate.item_went_downup = 0 | false;
+    uistate.mouse_went_up = 0 | false;
     // this probably won't stay here
-    uistate.collapsed_panel_index = 0; 
-}
-
-function on_tick() {
-    main_loop();
-    tick_functions = [];
-
-    // now draw offscreen canvas to screen canvas, if that's how we configured in driver
-    if (canvas === canvas_off) {
-        canvas_screen.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height);
-    }
+    uistate.collapsed_panel_index = 0 | 0;
 }
 
 /** add rect as hotspot */
@@ -508,7 +543,7 @@ function do_rectangle(local_rect, color) {
 // will write a 2nd line of functions if i need text offset
 function do_button(uiid, text, local_rect) {
     const rect = layout_translated(local_rect);
-    
+
     // this doesn't account for buttons in other layers/windows which have the same params
     uiid = `button(${text},${rect[_x]},${rect[_y]},${rect[_w]},${rect[_h]})`; // nolive
 
@@ -667,15 +702,19 @@ function do_checkbutton(uiid, text, local_rect, value, text_offset_x, text_offse
     const rect = layout_translated(local_rect);
     add_hotspot(uiid, rect);
     let state = calc_drawstate(uiid);
-    uidraw.checkbutton(text, rect, state, value, text_offset_x, text_offset_y);
+    const group = get_button_group();
+    if (group) {
+        group.commands.push(uidraw.checkbutton, 6, text, rect, state, value, text_offset_x, text_offset_y);
+    } else {
+        uidraw.checkbutton(text, rect, state, value, text_offset_x, text_offset_y);
+    }
+
     layout_increment(rect);
 
     return [0 | changed, 0 | value];
 }
 
 // you can drag it around, anywhere.
-let _g_handle_delta_x = 0 | 0;
-let _g_handle_delta_y = 0 | 0;
 function do_handle(uiid, local_rect, x1, y1) {
     m_v8.assert_smi(local_rect[_x]);
     m_v8.assert_smi(local_rect[_y]);
@@ -695,7 +734,12 @@ function do_handle(uiid, local_rect, x1, y1) {
     const rect = layout_translated(local_rect);
     add_hotspot(uiid, rect);
 
+    if (uistate.item_went_downup == uiid) {
+        changed = 0 | true;
+    }
+
     if (uistate.item_went_down == uiid) {
+        changed = 0 | true;
         _g_handle_delta_x = 0 | (uistate.mouselocation[_x] - x1);
         _g_handle_delta_y = 0 | (uistate.mouselocation[_y] - y1);
     }
@@ -719,11 +763,136 @@ function do_handle(uiid, local_rect, x1, y1) {
     return [0 | changed, 0 | x1, 0 | y1];
 }
 
+// copied from do_handle
+function do_reticle(uiid, local_rect, x1, y1) {
+    m_v8.assert_smi(local_rect[_x]);
+    m_v8.assert_smi(local_rect[_y]);
+    m_v8.assert_smi(local_rect[_w]);
+    m_v8.assert_smi(local_rect[_h]);
+    m_v8.assert_smi(x1);
+    m_v8.assert_smi(y1);
+    console.assert(local_rect.length == 4);
+    console.assert(uiid != '', 'id cannot be blank');
+    console.assert(local_rect != null, 'local_rect cannot be null');
+
+    x1 = 0 | x1;
+    y1 = 0 | y1;
+
+    let changed = 0 | false;
+
+    const rect = layout_translated(local_rect);
+    add_hotspot(uiid, rect);
+
+    if (uistate.item_went_downup == uiid) {
+        changed = 0 | true;
+    }
+
+    if (uistate.item_went_down == uiid) {
+        changed = 0 | true;
+        _g_handle_delta_x = 0 | (uistate.mouselocation[_x] - x1);
+        _g_handle_delta_y = 0 | (uistate.mouselocation[_y] - y1);
+    }
+
+    if (uistate.item_held == uiid) {
+        //let mousepos = uistate.mouselocation[_x] - x
+        //mousepos = clamp(mousepos, 0, i)
+        //let v = round(mousepos * max / i, 0)
+        //if (v != value) then
+        changed = 0 | true;
+        x1 = 0 | (uistate.mouselocation[_x] - _g_handle_delta_x);
+        y1 = 0 | (uistate.mouselocation[_y] - _g_handle_delta_y);
+        //end
+    }
+
+    let state = calc_drawstate(uiid);
+
+    uidraw.reticle(uiid, rect, state);
+    layout_increment(rect);
+
+    return [0 | changed, 0 | x1, 0 | y1];
+}
+
+const group_buttons_stack = [];
+
+function get_button_group() {
+    const len = group_buttons_stack.length;
+    if (len) {
+        return group_buttons_stack[len - 1];
+    }
+}
+
+function group_buttons_begin() {
+    // defer draws.... so we can render as group.
+    const o = {
+        commands: []
+    };
+    group_buttons_stack.push(o);
+}
+
+function execute_commands(commands) {
+
+    // first button. push button draw modifiers then pop
+    // last button. same
+    for (var i = 0; i < commands.length; ) { // note: no inc
+        const is_first_item = 0 | i == 0;
+
+        const fn = commands[i];
+        i++;
+        const arg_count = commands[i];
+        i++;
+        const args = [];
+        for (var j = 0; j < arg_count; j++) {
+            const arg = commands[i];
+            i++;
+            args.push(arg);
+        }
+        
+        const is_last_item = 0 | i == commands.length;
+        
+        const peek = layout_peek();
+
+        let head_renderer;
+        let tail_renderer;
+
+        if (peek[_mode] == _vertical) {
+            head_renderer = uidraw.checkbutton_soft_top;
+            tail_renderer = uidraw.checkbutton_soft_bottom;
+        } else if (peek[_mode] == _horizontal) {
+            head_renderer = uidraw.checkbutton_soft_left;
+            tail_renderer = uidraw.checkbutton_soft_right;
+        } else {
+            head_renderer = fn;
+            tail_renderer = fn;
+        }
+
+        if (is_first_item) {
+            head_renderer.apply(null, args);
+        } else if (is_last_item) {
+            tail_renderer.apply(null, args);
+        } else {
+            fn.apply(null, args);
+        }
+    }
+}
+
+function group_buttons_end() {
+    const o = group_buttons_stack.pop();
+    execute_commands(o.commands);
+    o.commands.length = 0; // i guess this assumes super-smart browser array implementation    
+    console.assert(o);
+}
+
+function angled_norm_line(rad, scale) {
+    const x = Math.sin(rad) * scale;
+    const y = Math.cos(rad) * scale;
+    return [x, y];
+}
+
 export {
     Hotspot,
+    Color,
     Point,
     Rectangle,
-    add_tick,
     clamp,
     rectangle_contains,
     calc_drawstate,
@@ -738,7 +907,7 @@ export {
     layout_increment2,
     on_mousepressed,
     on_mousereleased,
-    on_tick,
+    run,
     do_label as label,
     do_rectangle as rectangle,
     do_button as button,
@@ -748,6 +917,15 @@ export {
     do_vslider as vslider,
     do_checkbutton as checkbutton,
     do_handle as handle,
+    do_reticle as reticle,
     uistate as state,
-    config
+    config,
+    initialize,
+    make_css_color,
+    driver,
+    context,
+    canvas,
+    debounce, throttle,
+    group_buttons_begin, group_buttons_end,
+    angled_norm_line
 };

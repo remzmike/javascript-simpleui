@@ -1,5 +1,7 @@
 // from https://www.npmjs.com/package/load-bmfont
-function parseBMFontAscii(data) {
+
+// one export
+export function parseBMFontAscii(data) {
   if (!data)
     throw new Error('no data provided')
   data = data.toString().trim()

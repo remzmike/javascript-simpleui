@@ -17,8 +17,8 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
     <meta property="og:title" content="simpleui: realtime immediate-mode ui">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://remzmike.github.io/simpleui">
-    <meta property="og:image" content="http://remzmike.github.io/mash/simpleui-js-alpha-crop.png?2">
-    <meta property="og:image:secure_url" content="https://remzmike.github.io/mash/simpleui-js-alpha-crop.png?2" />
+    <meta property="og:image" content="http://remzmike.github.io/mash/simpleui-js-alpha-crop.png?3">
+    <meta property="og:image:secure_url" content="https://remzmike.github.io/mash/simpleui-js-alpha-crop.png?3" />
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1600">
     <meta property="og:image:height" content="838">
@@ -38,809 +38,98 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 <body id=myBody>
     <canvas id=myCanvas moz-opaque></canvas>
     <script src="polyfill_raf.js"></script>
-    <script src="bmfont.js"></script>
-    <script src="bmfont_upfmana16.js"></script>
     <!-- -->
     <script src="m_v8.js"></script>
-    <script src="consts.js"></script>
-    <script src="simpleui_driver_html5canvas.js"></script>
     <!-- -->
-    <script src="./dist/bundle.js" charset="utf-8"></script>
+    <script src="./dist/simpleui-bundle.js" charset="utf-8"></script>
     <!-- -->
+    <script src="app-consts.js"></script>
+    <script src="app-util.js"></script>    
+    
     <script>
-        m_simpleui.config.drawbox_gradient_enable = true;
-
         // aliases
-        var ui = m_simpleui;
-        var uidraw = m_simpleui_drawing;
-        var Rectangle = ui.Rectangle;
-        var Point = ui.Point;
+        const ui = m_simpleui;
+        const uidraw = m_simpleui_drawing;
+        const Rectangle = ui.Rectangle;
+        const Point = ui.Point;
+        const Color = ui.Color;
+        const make_css_color = ui.make_css_color;
 
-        var app = {};
-        app.main_loop_time = 0;
-        app.main_proc_time = 0;
-        app.main_tick = 0;
-        app.canvas_size_hack = 20;
-        app.widget5value = true;
-        app.panel_layout_padding = 2;
+        ui.initialize({ driver: 'html5-canvas', canvasId: 'myCanvas' });
+        const context = ui.driver.GetContext();
+        const canvas = ui.driver.GetCanvas();
+        const GetCursorX = ui.driver.GetCursorX;
+        const GetCursorY = ui.driver.GetCursorY;
+
+        const app = {
+            main_loop_time: 0,
+            main_proc_time: 0,
+            main_tick: 0,
+            canvas_size_hack: 20,
+            panel_layout_padding: 2,
+            window_active: 0 | true,
+            desktop: 'demo',
+            desktops: ['demo', 'audio']
+        };
     </script>
-    <script> // like a watch        
-        function do_color(key, color, label) {
-            let _;
 
-            let changed = false | 0;
+    <script src="app-ui-demo.js"></script>
+    <script src="app-ui-audio.js"></script>
 
-            // base component sizes
-            const h = 24 | 0;
-            const w = (h * 5) | 0;
-
-            const rect = Rectangle(0, 0, w, h);
-
-            const horz_layout = ui.layout_push(_horizontal);
-            {
-
-                // label & sliders
-                const color_layout = ui.layout_push(_vertical);
-                {
-                    ui.label(label, rect);
-
-                    _ = ui.slider(key + '-slider-r', rect, 0, 255, color[_r], 'r');
-                    if (_[_changed]) { changed = 0 | true; color[_r] = _[_value]; }
-
-                    _ = ui.slider(key + '-slider-g', rect, 0, 255, color[_g], 'g');
-                    if (_[_changed]) { changed = 0 | true; color[_g] = _[_value]; }
-
-                    _ = ui.slider(key + '-slider-b', rect, 0, 255, color[_b], 'b');
-                    if (_[_changed]) { changed = 0 | true; color[_b] = _[_value]; }
-
-                    _ = ui.slider(key + '-slider-a', rect, 0, 255, color[_a], 'a');
-                    if (_[_changed]) { changed = 0 | true; color[_a] = _[_value]; }
-
-                }
-                ui.layout_pop();
-
-                // swatch
-                ui.layout_push(_vertical);
-                const pad = ui.layout_peek()[_padding]; // parent pad
-                {
-
-                    // this increment moves the swatch down so it aligns with the sliders, not the label                    
-                    ui.layout_increment2(0, h);
-
-                    const swatch_dim = h * 3 + pad * 2
-                    const swatch_rect = Rectangle(0, 0, swatch_dim, swatch_dim);                    
-                    //ui.rectangle(swatch_rect, color);
-                    uidraw.rounded_rectangle(ui.layout_translated(swatch_rect), color);
-                    ui.layout_increment(swatch_rect);
-
-                    _ = ui.button(key + '-rand-button', 'random', Rectangle(0, 0, swatch_dim, h));
-                    if (_[_clicked]) {
-                        randomize_color(color);
-                        changed = true | 0;
-                    }
-                }
-                ui.layout_pop();
-
-                ui.layout_increment2(
-                    horz_layout[_x] - horz_layout[_ox],
-                    color_layout[_y] - color_layout[_oy] - pad
-                );
-
-            }
-            ui.layout_pop();
-
-            return [changed | 0, color];
-        }
-
-        function do_ms_meter(uiid, label, a_time, high_value) {
-
-            let state = ui.get_state(uiid);
-            if (!state) {
-                state = ui.set_state(uiid, {
-                    'times': init_array(30, 0)
-                });
-            };
-            let times = state.times;
-            times.push(a_time);
-            times.shift();
-
-            //let high_value = 32;
-
-            ui.label(label, Rectangle(0, 0, 100, 20));
-            let v = 0 | sum(times) / times.length;
-            v = 0 | Math.floor( Math.min(high_value, v) );
-            ui.layout_push(_horizontal);
-            ui.progressbar(Rectangle(0, 0, 100, 20), high_value, 0 | Math.ceil(v));
-
-            let tmp = ui.config.drawtext_enable;
-            ui.config.drawtext_enable = true;
-            {
-                ui.label(v + 'ms', Rectangle(0, 0, 100, 20));
-            }
-            ui.config.drawtext_enable = tmp;
-
-            ui.layout_pop();
-        }
-
-        function do_ms_graph(uiid, label, a_time, graph_height) {
-            let state = ui.get_state(uiid);
-            if (!state) {
-                state = ui.set_state(uiid, {
-                    'times': init_array(30, 0)
-                });
-            };
-            let times = state.times;
-            times.push(a_time);
-            times.shift();
-
-            //let graph_height = 40;
-            ui.label(label, Rectangle(0, 0, 100, 20));
-            ui.layout_push(_horizontal, 0);
-            for (let i = 0; i < times.length; i++) {
-                let v = 0 | Math.min(graph_height, times[i]);
-                ui.rectangle(Rectangle(0, 0, 4, v), Color(255, 255, 255, 51));
-            }
-            ui.layout_increment2(0, graph_height);
-            ui.layout_pop();
-        }
-
-        function do_sidepanel() {
-            let _;
-            let pad = 8;
-            let none1 = ui.layout_push(_none, 0, 0, 0);
-            let rect = Rectangle(0, 0, 200, canvas.height | 0);
-            let rect2 = uidraw.rectangle_erode(rect, 2);
-            const sidepanel_color = Color(uidraw.panel_color[_r], uidraw.panel_color[_g], uidraw.panel_color[_b], 127);
-            ui.rectangle(rect, sidepanel_color);
-
-            let vert1 = ui.layout_push(_vertical, pad, pad, pad);
-            {
-                ui.label('simpleui v0.3', Rectangle(0, 0, 100, 24));
-                
-                // reload
-                _ = ui.button('sidepanel-reload-button', 'reload', Rectangle(0, 0, 100, 24));
-                if (_[_clicked]) {
-                    document.location.reload(true);
-                }
-
-                // padding
-                ui.label('padding', Rectangle(0, 0, 100, 20));
-                _ = ui.slider('sidepanel-padding-slider', Rectangle(0, 0, 100, 20), 0, 12, app.panel_layout_padding, '');
-                if (_[_changed]) {
-                    app.panel_layout_padding = _[_value];
-                }
-
-                // mouse status :->
-                {
-                    let w_ = 180; // max-width
-
-                    let aspect = canvas.width / canvas.height;
-                    let h_ = w_ / aspect;
-
-                    if (h_ > 100) { // max-height
-                        w_ = w_ * 100 / h_;
-                        h_ = 100;
-                    }
-
-                    let w = 0 | w_;
-                    let h = 0 | h_;
-
-                    ui.label('mouse status', Rectangle(0, 0, 100, 20));
-
-                    ui.rectangle(Rectangle(0, 0, w, h), uidraw.normal_back);
-
-                    let cursor_size = 4;
-                    if (ui.state.item_held) {
-                        cursor_size = 8;
-                    }
-                    let radar_cursor_pos_x = 0 | (((GetCursorX() / canvas.width) * w) - (cursor_size / 2));
-                    let radar_cursor_pos_y = 0 | (((GetCursorY() / canvas.height) * w / aspect) - (cursor_size / 2));
-
-                    const layout = ui.layout_peek();
-                    ui.layout_push(_none, layout[_padding], layout[_x], layout[_y] - h - pad);
-                    const mouse_rect = Rectangle(0 | radar_cursor_pos_x, 0 | radar_cursor_pos_y, 0 | cursor_size, 0 | cursor_size);
-                    ui.rectangle(mouse_rect, uidraw.normal_back);
-                    ui.rectangle(mouse_rect, uidraw.accent);
-                    ui.layout_pop();
-                }
-
-                // cpu (not reasonably possible in js)
-                {
-                }
-
-                // memory
-                {
-                }
-
-                // frame times + graph
-                do_ms_meter('sidepanel-ms-meter', 'frame time', app.main_loop_time, 50);
-                do_ms_graph('sidepanel-frame-graph', 'frame graph', app.main_loop_time, 20);
-
-                // actual times + graph
-                do_ms_meter('sidepanel-actual-meter', 'cpu time per frame', app.main_proc_time, 10);
-                do_ms_graph('sidepanel-actual-graph', 'cpu time graph', app.main_proc_time, 20);
-
-                // canvas size hack
-                // disabling until i do it with flicker
-                /*
-                ui.label('canvas trim', Rectangle(0, 0, 100, 20));
-                ui.layout_push(_horizontal);
-                _ = ui.slider('sidepanel-canvas-size-hack-slider', Rectangle(0, 0, 100, 20), 0, 60, app.canvas_size_hack, '');
-                if (_[_changed]) {
-                    app.canvas_size_hack = _[_value];
-                    set_size();
-                }
-                ui.label(app.canvas_size_hack + 'px', Rectangle(0, 0, 100, 20));
-                ui.layout_pop();
-                */
-
-                // show/hides
-                /*{
-                    let panels = ['color panel', 'gradient panel', 'gridfont paneli', 'scroll test panel'];
-
-                    for (let i = 0; i < panels.length; i++) {
-                        let uiid = panels[i];
-                        let panel = ui.get_state(uiid);
-                        _ = ui.checkbutton('sidepanel-toggle-' + uiid, 'show ' + uiid, Rectangle(0, 0, 183, 24), panel && panel.visible);
-                        if (_[_changed]) {
-                            panel.visible = !panel.visible;
-                        }
-                    }
-                }*/
-
-                // misc
-                if (false) {
-                    ui.label('pixel ratio: ' + window.devicePixelRatio, Rectangle(0, 0, 100, 20));
-                    let memory = performance.memory;
-                    if (memory) {
-                        let mem1 = memory.usedJSHeapSize / (1024 * 1024);
-                        let mem2 = memory.jsHeapSizeLimit / (1024 * 1024);
-                        ui.label('mem1: ' + round(mem1) + 'MB', Rectangle(0, 0, 100, 20));
-                        ui.label('mem2: ' + round(mem2) + 'MB', Rectangle(0, 0, 100, 20));
-                    }
-                }
-
-                // flags
-                {
-                    // editor help for function arguments needs some revamping
-                    _ = ui.button('button-rtc', 'reset text cache', Rectangle(0, 0, 150, 24));
-                    if (_[_clicked]) _drawtext_cache = {};
-
-                    _ = ui.button('button-rbc', 'reset box cache', Rectangle(0, 0, 150, 24));
-                    if (_[_clicked]) _drawbox_cache = {};
-
-                    ui.layout_push(_horizontal);
-                    {
-                        _ = ui.checkbox('ui.config.drawtext_bitmap checkbox',
-                            Rectangle(0, 0, 20, 20), ui.config.drawtext_bitmap);
-                        if (_[_changed]) {
-                            ui.config.drawtext_bitmap = !ui.config.drawtext_bitmap;
-                        }
-                        ui.label('drawtext bitmap', Rectangle(0, 0, 100, 20));
-                    }
-                    ui.layout_pop();
-
-                    ui.layout_push(_horizontal);
-                    {
-                        _ = ui.checkbox('ui.config.drawhotspots_enable checkbox',
-                            Rectangle(0, 0, 20, 20), ui.config.drawhotspots_enable); // todo: move this let to ui.config.
-                        if (_[_changed]) {
-                            ui.config.drawhotspots_enable = _[_value];
-                        }
-                        ui.label('draw hotspots', Rectangle(0, 0, 100, 20));
-                    }
-                    ui.layout_pop();
-
-                    ui.layout_push(_horizontal);
-                    {
-                        _ = ui.checkbox('ui.config.drawtext_enable checkbox',
-                            Rectangle(0, 0, 20, 20), ui.config.drawtext_enable);
-                        if (_[_changed]) {
-                            ui.config.drawtext_enable = _[_value];
-                        }
-                        ui.label('draw text', Rectangle(0, 0, 100, 20));
-                    }
-                    ui.layout_pop();
-
-                    ui.layout_push(_horizontal);
-                    {
-                        _ = ui.checkbox('ui.config.drawbox_gradient', Rectangle(0, 0, 20, 20), ui.config.drawbox_gradient_enable);
-                        if (_[_changed]) {
-                            ui.config.drawbox_gradient_enable = _[_value]
-                        }
-                        ui.label('drawbox gradient', Rectangle(0, 0, 100, 20));
-                    }
-                    ui.layout_pop();
-
-                    ui.layout_push(_horizontal);
-                    {
-                        _ = ui.checkbox('ui.config.drawbox_soft_enable', Rectangle(0, 0, 20, 20), ui.config.drawbox_soft_enable);
-                        if (_[_changed]) {
-                            ui.config.drawbox_soft_enable = _[_value];
-                        }
-                        ui.label('drawbox soft', Rectangle(0, 0, 100, 20));
-                    }
-                    ui.layout_pop();
-                }
-
-            }
-            ui.layout_pop();
-            ui.layout_pop();
-
-        }
-
-        function do_color_row(obj, keys) {
-            for (let i = 0; i < keys.length; i++) {
-                let k = keys[i];
-                let _ = do_color('color_' + k, obj[k], k);
-                if (_[_changed]) {
-                    obj[k] = _[_value];
-                }
-            }
-        }
-
-        function do_color_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-            let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
-            if (panel.visible && panel.expanded) {
-                // row 1
-                ui.layout_push(_horizontal)
-                {
-                    do_color_row(uidraw, ['accent', 'panel_color', 'bg_color']);
-                }
-                ui.layout_pop();
-
-                // row 2
-                ui.layout_push(_horizontal)
-                do_color_row(uidraw, ['normal_back', 'normal_face', 'activating_face']);
-                ui.layout_pop();
-
-                // row 3
-                const peek = ui.layout_peek();
-                ui.layout_push(_horizontal, peek[_padding], peek[_x] + 202, peek[_y]);
-                do_color_row(uidraw, ['raised_face', 'raised_accent']);
-                ui.layout_pop();
-            }
-            do_panel_end(uiid);
-
-        }
-
-        function do_gradient_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-            let _;
-            let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
-            if (panel.visible && panel.expanded) {
-                let changed = 0 | false;
-
-                ui.layout_push(_horizontal);
-                {
-
-                    const min_x = -50;
-                    const max_x = 150;
-                    const min_y = -50;
-                    const max_y = 150;
-                    const dim_w = max_x - min_x;
-                    const dim_h = max_y - min_y;
-
-                    _ = do_gradient_stroke_edit(uiid + 'stroke-edit', -50, 150, uidraw.box_gradient.x1, uidraw.box_gradient.y1, uidraw.box_gradient.x2, uidraw.box_gradient.y2);
-                    if (_[_changed]) {
-                        changed = 0 | changed | _[_changed];
-                        uidraw.box_gradient.x1 = 0 | _[_x1];
-                        uidraw.box_gradient.y1 = 0 | _[_y1];
-                        uidraw.box_gradient.x2 = 0 | _[_x2];
-                        uidraw.box_gradient.y2 = 0 | _[_y2];
-                    }
-
-                    ui.layout_push(_vertical);
-                    {
-                        _ = ui.slider('grad-panel-slider-x1', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.x1, 'x1');
-                        changed = 0 | changed | _[_changed];
-                        if (_[_changed]) {
-                            uidraw.box_gradient.x1 = 0 | _[_value];
-                        }
-
-                        _ = ui.slider('grad-panel-slider-y1', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.y1, 'y1');
-                        changed = 0 | changed | _[_changed];
-                        if (_[_changed]) uidraw.box_gradient.y1 = 0 | _[_value];
-
-                        _ = ui.slider('grad-panel-slider-x2', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.x2, 'x2');
-                        changed = 0 | changed | _[_changed];
-                        if (_[_changed]) uidraw.box_gradient.x2 = 0 | _[_value];
-
-                        _ = ui.slider('grad-panel-slider-y2', Rectangle(0, 0, 200, 20), -50, 150, uidraw.box_gradient.y2, 'y2');
-                        changed = 0 | changed | _[_changed];
-                        if (_[_changed]) uidraw.box_gradient.y2 = 0 | _[_value];
-
-                        ui.layout_increment2(0, 20);
-                        ui.label('pt1: ' + uidraw.box_gradient.x1 + ', ' + uidraw.box_gradient.y1, Rectangle(0, 0, 200, 20))
-                        ui.label('pt2: ' + uidraw.box_gradient.x2 + ', ' + uidraw.box_gradient.y2, Rectangle(0, 0, 200, 20))
-                    }
-                    ui.layout_pop();
-
-                    ui.layout_increment2(0, dim_h);
-                } // horizontal 1                
-                ui.layout_pop();
-
-                ui.layout_push(_horizontal);
-                {
-                    _ = do_color('box_gradient.color_stop1', uidraw.box_gradient.color_stop1, 'stop1 color');
-                    changed = 0 | changed | _[_changed];
-
-                    _ = do_color('box_gradient.color_stop2', uidraw.box_gradient.color_stop2, 'stop2 color');
-                    changed = 0 | changed | _[_changed];
-                } // horizontal 2
-                ui.layout_pop();
-
-                if (changed) {
-                    let grd = make_drawbox_gradient(
-                        context,
-                        uidraw.box_gradient.x1, uidraw.box_gradient.y1,
-                        uidraw.box_gradient.x2, uidraw.box_gradient.y2,
-                        uidraw.box_gradient.color_stop1,
-                        uidraw.box_gradient.color_stop2
-                    );
-                    m_simpleui.config.drawbox_gradient = grd;
-                }
-            }
-            do_panel_end(uiid);
-        }
-
-        function do_gridfont_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-            let inner_uiid = uiid + 'i';
-
-            let state = ui.get_state(uiid);
-            if (!state) {
-                state = ui.set_state(uiid, {
-                    'uiid': uiid,
-                    'run': 0 | true,
-                    'reset': 0 | false
-                });
-            };
-
-            let panel = do_panel_begin(inner_uiid, first_x, first_y, first_visible, first_expanded);
-
-            if (panel.visible && panel.expanded) {
-
-                ui.layout_push(_horizontal);
-                let _ = ui.button(uiid + '-test-button', 'gridfont ' + (state.run ? 'stop' : 'run'), Rectangle(0, 0, 150, 24));
-                if (_[_clicked]) {
-                    state.run = 0 | (!state.run);
-                }
-
-                _ = ui.button(uiid + '-test-button2', 'gridfont reset', Rectangle(0, 0, 150, 24));
-                if (_[_clicked]) {
-                    state.reset = 0 | true;
-                }
-                ui.layout_pop();
-
-                ui.layout_increment2(0, 24);
-
-                context.save();
-                context.translate(0.5, 0);
-
-                const rect = ui.layout_translated(Rectangle(0, 0, 0, 0));
-
-                let complete = 0 | (state.run && true);
-                let reset_complete = 0 | (state.reset && true);
-                if (state.run) {
-                    context.save();
-                    /*let modes = [
-                        'source-over', 'source-in', 'source-out', 'source-atop',
-                        'destination-over', 'destination-in', 'destination-out', 'destination-atop',
-                        'lighter', 'copy', 'xor', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-                        'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion',
-                        'hue', 'saturation', 'color', 'luminosity'
-                    ];*/
-                    //let prev = context.globalCompositeOperation;
-                    //context.globalCompositeOperation = modes[6];
-
-                    _ = do_gridfont(uiid + '-gridfont1', 'abcdefghijklmnopqrstuvwxyz', 'hint-four', rect[_x], rect[_y], 10, state.reset);
-                    complete = 0 | (complete && _[_complete]);
-                    reset_complete = 0 | (reset_complete && _[_reset_complete]);
-                    if (_[_complete] || (state.reset && _[_reset_complete])) {
-                        _ = do_gridfont(uiid + '-gridfont2', 'leverage agile frameworks', 'hint-four', rect[_x], 0 | (rect[_y] + 10 * 7), 10, state.reset);
-                        complete = 0 | (complete && _[_complete]);
-                        reset_complete = 0 | (reset_complete && _[_reset_complete]);
-                        if (_[_complete] || (state.reset && _[_reset_complete])) {
-                            _ = do_gridfont(uiid + '-gridfont3', 'provide robust synopsis', 'hint-four', rect[_x], 0 | (rect[_y] + 20 * 7), 10, state.reset);
-                            complete = 0 | (complete && _[_complete]);
-                            reset_complete = 0 | (reset_complete && _[_reset_complete]);
-                        }
-                    }
-                    //context.globalCompositeOperation = prev;
-                    context.restore();
-                }
-
-                if (reset_complete) {
-                    state.reset = 0 | 0;
-                }
-
-                if (complete) {
-                    state.reset = 0 | 1;
-                }
-
-                let layout = ui.layout_peek();
-                ui.layout_increment2(780, 10 * 7 * 3 + 40);
-
-                context.restore();
-            }
-            do_panel_end(inner_uiid);
-        }
-
-        let _linestar_segments = 13;
-        let _linestar_segments_direction = 1;
-        let _linestar_segments_accumulator = 0;
-        let _linestar_segments_accumulator_max = 8;
-        let _linestar_joints = 12;
-        let _linestar_joints_direction = 1;
-        let _linestar_joints_accumulator = 0;
-        let _linestar_joints_accumulator_max = 5;
-        let _linestar_webs = 5;        
-        let _linestar_anim_enabled = 0 | false;
-        function do_linestar_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-            let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
-
-            if (panel.expanded) {
-                let _ = do_linestar_edit(uiid + '-linestar-edit', _linestar_segments, _linestar_joints, _linestar_webs);
-                if (_[_changed]) {
-                    _linestar_segments = _[1];
-                    _linestar_joints = _[2];
-                    _linestar_webs = _[3];
-                } else if (_linestar_anim_enabled) {
-                    _linestar_segments_accumulator++;
-                    if (_linestar_segments > 20 || _linestar_segments < 3) {
-                        _linestar_segments = Math.max(3, Math.min(20, _linestar_segments));
-                        _linestar_segments_direction = -_linestar_segments_direction;
-                    }                    
-                    if (_linestar_segments_accumulator == _linestar_segments_accumulator_max) {
-                        _linestar_segments = _linestar_segments + _linestar_segments_direction;
-                        _linestar_segments_accumulator = 0;
-                    }
-
-                    _linestar_joints_accumulator++;
-                    if (_linestar_joints > 20 || _linestar_joints < 3) {
-                        _linestar_joints = Math.max(3, Math.min(20, _linestar_joints));
-                        _linestar_joints_direction = -_linestar_joints_direction;
-                    }                    
-                    if (_linestar_joints_accumulator == _linestar_joints_accumulator_max) {
-                        _linestar_joints = _linestar_joints + _linestar_joints_direction;
-                        _linestar_joints_accumulator = 0;
-                    }                    
-                }
-
-                const label = ( _linestar_anim_enabled ? 'disable' : 'enable' ) + ' idle animation';
-                _ = ui.checkbutton(uiid + '-enable-anim-button', label, Rectangle(0, 0, 200, 24), _linestar_anim_enabled);
-                if (_[_changed]) {
-                    _linestar_anim_enabled = _[_value];
-                }
-
-                const rect = Rectangle(0, 0, 200, 20);
-                ui.layout_push(_horizontal);
-                _ = ui.slider(uiid + '-slider-1', rect, 1, 20, _linestar_segments_accumulator_max, '');
-                if (_[_changed]) {
-                    _linestar_segments_accumulator = 0;
-                    _linestar_segments_accumulator_max = 0 | _[_value];
-                }
-                ui.label('segment anim delay', rect);
-                ui.layout_pop();
-
-                ui.layout_push(_horizontal);
-                _ = ui.slider(uiid + '-slider-2', rect, 1, 20, _linestar_joints_accumulator_max, '');
-                if (_[_changed]) {
-                    _linestar_joints_accumulator = 0;
-                    _linestar_joints_accumulator_max = 0 | _[_value];
-                }
-                ui.label('joint anim delay', rect);
-                ui.layout_pop();
-                
-
-            }
-
-            do_panel_end(uiid);
-            return panel;
-        }            
-
-        function do_scrolltest_panel(uiid, first_x, first_y, first_visible, first_expanded) {
-
-            let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
-
-            if (panel.visible && panel.expanded) {
-
-                // todo: design so that when i remove the scroll widget, the contained widgets will just render as usual
-                let scroll_uiid = 'scrolltest';
-                let scroll = do_scroll_begin(scroll_uiid, Rectangle(panel.rect[_x], panel.rect[_y], 200, 200), 20, 100000);
-
-                // todo:
-                // maybe an opt-in api for widgets to call to see if they are... "in view"
-                // if (!in_view(uiid)) { return null; } // or something
-                // or maybe something like this...
-                // while (let item = get_visible_item(scroll_uiid)) {
-                //
-                // }
-                for (let i = scroll.first_visible_index; i < scroll.last_visible_index; i++) {
-                    do_scroll_item_begin(scroll_uiid, i);
-                    const _ = ui.button('scroll-experiment-button-' + i, 'button #' + i, Rectangle(0, 0, 200, 20));
-                    if (_[_clicked]) console.log('clicked #' + i);
-                    do_scroll_item_end(scroll_uiid);
-                }
-
-                do_scroll_end(scroll_uiid);
-            }
-
-            do_panel_end(uiid);
-            return panel;
-        }
-
-        /** create random point, with no zero components */
-        function random_anim_vector() {
-            let vecx = 0 | 1;
-            let vecy = 0 | 1;
-            if (Math.random() < 0.5) {
-                vecx = -vecx;
-            }
-            if (Math.random() < 0.5) {
-                vecy = -vecy;
-            }
-            return Point(vecx, vecy);
-        }
-        
-        const anim_items = [];
-        const anim_vectors = [];
-        const anim_colors = [];
-        const anim_color1 = make_css_color(Color(255, 255, 255, 8));
-        const anim_color2 = make_css_color(Color(255, 255, 255, 8));
-        let _bg_init = 0 | false;
-        let _anim_gradient = make_drawbox_gradient(
-            context,
-            400, 400,
-            1000, 1000,
-            Color(0x00, 0xB5, 0xE3, 255),
-            Color(255, 0, 255, 255)
-        );
-
-        function do_background_anim() {            
-            if (!_bg_init) {
-                for(var i=0; i < 100; i++) {
-                    const randx = 0 | (Math.random() * canvas.width*3) - canvas.width;
-                    const randy = 0 | (Math.random() * canvas.height*3) - canvas.height;
-                    anim_items.push(Point(randx, randy));
-                    anim_vectors.push(random_anim_vector());
-                    let alpha = 20 + 0 | Math.random() * 40;
-                    let css = make_css_color(Color(200, 200, 200, alpha))
-                    anim_colors.push(css);
-                }
-                _bg_init = 0 | true;
-            }
-
-            context.beginPath();
-            for (var i = 0; i < anim_items.length; i++) {
-                const item = anim_items[i];
-                const vec = anim_vectors[i];                
-                
-                let prev_index;
-                if (i == 0) {
-                    prev_index = anim_items.length - 1;
-                } else {
-                    prev_index = i - 1;
-                }
-                const prev = anim_items[prev_index];
-
-                context.lineTo(item[_x], item[_y]);                
-
-                // update positions from vectors                
-                item[_x] = 0 | item[_x] + vec[_x];
-                item[_y] = 0 | item[_y] + vec[_y];
-
-                const min_x = 0 | -canvas.width;
-                const max_x = 0 | canvas.width * 2;
-                const min_y = 0 | -canvas.height;
-                const max_y = 0 | canvas.height * 2;
-
-                // reverse vectors when out of bounds
-                if (item[_x] < min_x || item[_x] > max_x) {
-                    vec[_x] = 0 | -vec[_x];
-                }
-                if (item[_y] < min_y || item[_y] > max_y) {
-                    vec[_y] = 0 | -vec[_y];
-                }
-            }
-
-            context.setLineDash([]);
-            context.lineWidth = 1;
-            context.strokeStyle = anim_color1; // anim_colors[i];
-            context.stroke();
-
-            const dash_scale = 20
-            context.setLineDash([1*dash_scale, 3*dash_scale, 3*dash_scale, 5*dash_scale, 5*dash_scale, 8*dash_scale, 8*dash_scale, 13*dash_scale]);
-            context.lineWidth = 3;
-            context.strokeStyle = anim_color2; // anim_colors[i];
-            context.stroke();
-
-            context.setLineDash([]);
-
-        }
-
-        var _test_handle_x = 100;
-        var _test_handle_y = 100;
-        function do_ui() {                        
+    <script>
+        function do_ui() {
             do_background_anim();
-            do_sidepanel();                        
-
+            do_sidepanel();
+            
             ui.label('This is not html. It is an image updated by javascript.', Rectangle(220, 14, 400, 0));
-            
-            const row_x0 = 240;
-            const row_y0 = 90;
-            do_linestar_panel('linestar panel', row_x0, row_y0, true, true);
 
-            const row_x1 = row_x0 + 465;
-            do_color_panel('color panel', row_x1, row_y0, true, true);
-            
-            const row_x2 = row_x1 + 666;
-            do_gradient_panel('gradient panel', row_x2, row_y0, true, true);
-
-            do_gridfont_panel('gridfont panel ', row_x1, 547+27, true, true);
-            do_scrolltest_panel('scroll test panel', 1579, 486+25, true, true);            
+            if (app.desktop == 'demo') {
+                do_ui_demo();
+            } else if (app.desktop == 'audio') {
+                do_ui_audio();
+            }
         }
 
+        let _hack = 0;
         function main() {
             window.requestAnimationFrame(main); // schedule next frame immediately
 
-            const proc_start = performance.now();
+            const start = performance.now();
 
-            if (window_active) {
-                // clear
-                context.beginPath();
-                context.fillStyle = make_css_color(uidraw.bg_color);
-                context.rect(0, 0, canvas.width, canvas.height);
-                context.fill();
-                context.closePath();
-            } else {
-                //context.fillStyle = "rgba(60,60,50,1)";
-            }
-
-            if (window_active) {
-                ui.add_tick(do_ui);
-                ui.on_tick();
+            if (app.window_active) {
+                ui.driver.FrameClear();
+                ui.run(do_ui);
             } else {
                 // later: "click to enable" indicator here
+                //uidraw.push_fillstyle("rgba(60,60,50,1)");
             }
 
-            const proc_end = performance.now();
-            app.main_proc_time = proc_end - proc_start;
-
             const now = performance.now();
-            // later: ringbuffer.
+            app.main_proc_time = now - start;           
+            // ?later: ringbuffer.
             app.main_loop_time = now - app.main_tick;
             app.main_tick = now;
         }
-
-        // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers
-
+        
         window.onload = function () {
             // focus/blur seems to be hardcore junk in both ff and ch
             window.onfocus = function () {
-                window_active = true;
+                app.window_active = true;
                 // todo: implement a pause call in simpleui, invert this logic, then just turn on/off pause directly here...
-                console.log('[window.onfocus]', window_active);
+                console.log('[window.onfocus]', app.window_active);
             };
             window.onblur = function () {
-                window_active = false;
-                console.log('[window.onblur]', window_active);
+                app.window_active = false;
+                console.log('[window.onblur]', app.window_active);
             };
             window.onresize = function () {
                 //set_size(); not the full puzzle
             }
-            set_size();
+            ui.driver.UpdateSize();
 
-            window.bmfont_mana = parseBMFontAscii(__bmfonts_upfmana16);
-            window.bmfont_mana_img = new Image(512, 512);
-
-            // single-resource load for font
-            window.bmfont_mana_img.onload = function () {
-                window.requestAnimationFrame(main); // schedule first frame
-                app.main_tick = performance.now();
-            };
-
-            window.bmfont_mana_img.src = 'upfmana16_0.png';
-        };        
+            window.requestAnimationFrame(main); // schedule first frame
+            app.main_tick = performance.now();
+        };                
     </script>
 
 </body>

@@ -1,40 +1,12 @@
-let round = Math.round;
+import { parseBMFontAscii } from './bmfont.js';
+import bmfont_definition_mana16 from './bmfont_definition_mana16.js';
+import images_mana16 from './images/mana16.png';
 
-var window_active = true;
+const bmfont_mana16 = parseBMFontAscii(bmfont_definition_mana16);
+const bmfont_mana16_img = new Image(512, 81);
+bmfont_mana16_img.src = images_mana16;
 
 let _mouse_pos = [0 | 0, 0 | 0];
-
-function init_array(size, init_val) {
-    let a = [];
-    for (let i = 0; i < size; i++) {
-        a[i] = init_val;
-    }
-    return a;
-}
-
-function set_size() {
-    let w = window.innerWidth - app.canvas_size_hack;
-    let h = window.innerHeight - app.canvas_size_hack;
-    
-    //w = Math.max(w, 800);
-    //h = Math.max(h, 600);
-    pixi_app.renderer.resize(w,h)
-}
-
-function randomize_color(color) {
-    //let a = [_r, _g, _b, _a];    
-    let a = [_r, _g, _b];
-    for (let i = 0; i < a.length; i++) {
-        let k = a[i];
-        let v;
-        if (k == _a) {
-            v = 125 + Math.round(Math.random() * (255-125));
-        } else {
-            v = 55 + Math.round(Math.random() * 200);
-        }
-        color[k] = v;
-    }
-}
 
 function on_mouse_move(evt) {
     let rect = canvas.getBoundingClientRect();
@@ -69,34 +41,6 @@ function on_touch_end(evt) {
     ui.on_mousereleased(x, y, _left);
 }
 
-function make_css_color(color) {
-    let css;
-
-    let use_alpha = true;
-
-    if (document.body.ui) { // todo nolive hax : temporal include dilemma
-        // window.ui also works
-        use_alpha = ui.config.drawbox_gradient_enable;
-    }
-
-    if (use_alpha) {
-        css = `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, ${color[_a]/255})`;
-    } else {
-        css = `rgba(${color[_r]}, ${color[_g]}, ${color[_b]}, 1)`;
-    }
-
-    return css;
-}
-
-function make_drawbox_gradient(context, x1, y1, x2, y2, colorstop1, colorstop2) {
-    /*console.assert(context);
-    let grd = context.createLinearGradient(x1, y1, x2, y2);
-    grd.addColorStop(0.0, make_css_color(colorstop1));
-    grd.addColorStop(0.5, make_css_color(colorstop2));
-    return grd;*/
-    return {};
-}
-
 /* -------------------------------------------------------------------------- */
 
 function GetCursorX() {
@@ -113,14 +57,10 @@ function GetFontSize() {
 
 let fonts = [
     { name: 'sans-serif', size: 14, line_size: 14 },
-    { name: 'VJ Nina', size: 14, line_size: 14 },
-    { name: 'UPF Mana-16', size: 8, line_size: 14 },
-    { name: 'UPF Elementar Basica 13.11.4 a', size: 8, line_size: 14 }
 ];
 function DrawText_Stroke(text, x, y, color) {
-    //context.beginPath();
     let fontsize = GetFontSize();
-    let font = fonts[2];
+    let font = fonts[0];
     context.font = font.size + "px '" + font.name + "'";
     if (color == null) {
         color = m_simpleui.Color(255, 255, 255, 255);
@@ -128,22 +68,21 @@ function DrawText_Stroke(text, x, y, color) {
     context.fillStyle = make_css_color(color);
     let yoffset = fontsize - 2;
     context.fillText(text, x, y + yoffset);
-    //context.closePath();
 }
 
 function DrawText_Bitmap(text, x, y, color) {
     for (let i = 0; i < text.length; i++) {
         let idx = text.charCodeAt(i);
-        let def = bmfont_mana.chars[idx - 31];
+        let def = bmfont_mana16.chars[idx - 31];
 
         // replace unknown chars with ?
         if (!def) {
             idx = "?".charCodeAt(0);
-            def = bmfont_mana.chars[idx - 31];
+            def = bmfont_mana16.chars[idx - 31];
         }
 
         /*context.drawImage(
-            bmfont_mana_img,
+            bmfont_mana16_img,
             def.x, def.y, def.width, def.height,
             x + def.xoffset, y + def.yoffset, def.width, def.height
         );*/
@@ -186,7 +125,7 @@ function DrawBoxInternal(rect, color, soft) {
 
     //if (color) {
         const rgb = color[_r] << 16 | color[_g] << 8 | color[_b] << 0;
-        graphics.beginFill(rgb); //, color.a/255);
+        context.beginFill(rgb); //, color.a/255);
         //graphics.beginFill(0xFF3300);
         //graphics.lineStyle(4, 0xffd900, 1);
     
@@ -195,14 +134,12 @@ function DrawBoxInternal(rect, color, soft) {
     /*
     // test texture resampling from white pixel in font
     context.drawImage(
-        bmfont_mana_img,
+        bmfont_mana16_img,
         2, 2, 1, 1,
         rect[_x], rect[_y], rect[_w], rect[_h],       
     );*/
 
     if (soft) {
-        const z = 1;
-        //let z2 = z*2;
         const lines = 1; // adjustor
         context.fillRect(x, y + lines, width, height - (lines * 2)); // mid
 
@@ -246,109 +183,126 @@ function DrawBox(rect, color) {
 }
 
 function DrawRoundedBox(rect, color) {
-    const soft = 0 | m_simpleui.config.drawbox_soft_enable;
     return DrawBoxInternal(rect, color, soft);
 }
 
-function draw_line(x1, y1, x2, y2) {
+const DrawCircle = DrawBox;
+
+function DrawLine(x1, y1, x2, y2) {
     x1 = 0 | x1;
     y1 = 0 | y1;
     x2 = 0 | x2;
     y2 = 0 | y2;
-    graphics.lineStyle(1, 0xFFFFFF, 1);
+    context.lineStyle(1, 0xFFFFFF, 1, 0);
     context.moveTo(x1, y1);
     context.lineTo(x2, y2);
-}
-
-/** make rgba color from unsigned bytes [0-255] (Smi's) */
-function Color(r, g, b, a) {
-    return [
-        0 | r,
-        0 | g,
-        0 | b,
-        0 | a
-    ];
 }
 
 const DrawText = DrawText_PixiText;
 //const DrawText = DrawText_Bitmap;
 
-PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST; // {LINEAR: 0 (default), NEAREST: 1}
-
-let pixi_app = new PIXI.Application({
-    width: 512,
-    height: 512,
-    antialias: true,
-    transparent: true,
-    resolution: 1
-});
-let canvas = pixi_app.view;
-document.body.appendChild(canvas);
-let canvas_off = document.createElement('canvas'); // vestige
-
-let graphics = new PIXI.Graphics();
-
-let context = graphics;
-context.fillRect = function(x,y,w,h) {
-    //graphics.beginFill(0xFF3300);
-    graphics.lineStyle(0, 0xffffff, 1);
-    context.drawRect(x,y,w,h);
-}
-context.save = function() {};
-context.restore = function() {};
-context.clip = function() {};
-context.rect = function() {};
-context.translate = function() {};
-context.stroke = function() {};
-context.beginPath = function() {};
-context.setLineDash = function() {};
-
-//pixi_app.stage.addChild(graphics);
-
-let font_sprite;
-
-function on_pixi_ready() {
-    font_sprite = new PIXI.Sprite(
-        PIXI.loader.resources['upfmana16_0.png'].texture
-    );
-}
-
-canvas.addEventListener('mousemove', on_mouse_move, false);
-// touch move? (NO!)
-
-canvas.addEventListener('mousedown', on_mouse_down, false);
-canvas.addEventListener('touchstart', on_touch_start, {capture: false, passive: true});
-    
-canvas.addEventListener('mouseup', on_mouse_up, false);
-canvas.addEventListener('touchend', on_touch_end, false);
-
-/*
-let renderer = PIXI.autoDetectRenderer(800, 600, { antialias: false, backgroundColor: 0x1099bb });
-if (renderer instanceof PIXI.CanvasRenderer) {
-    console.warning('[PIXI is rendering to canvas]');
-}*/
-//document.body.appendChild(renderer.view);
-
-//let stage = new PIXI.Container();
-
-/*var stage = new PIXI.Stage(0xFFFFFF, true);
-stage.setInteractive(false);
-
-var sprite = PIXI.Sprite.fromImage("upfmana16_0.png");
-//stage.addChild(sprite);
-// create a renderer instance
-//var renderer = new PIXI.CanvasRenderer(800, 600);//PIXI.autoDetectRenderer(800, 600);
-var renderer = PIXI.autoDetectRenderer(620, 380);
-
-// set the canvas width and height to fill the screen
-//renderer.view.style.width = window.innerWidth + "px";
-//renderer.view.style.height = window.innerHeight + "px";
-renderer.view.style.display = "block";
-    
-// add render view to DOM
-document.body.appendChild(renderer.view);
-*/
-
 // -------------------------------------------------------- //
 
+let canvas;
+let context;
+let pixi_app;
 
+function initialize(canvasId) {
+    // {LINEAR: 0 (default), NEAREST: 1}
+    PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.LINEAR; // doesnt really matter wrt antialiasing
+
+    console.log('window.devicePixelRatio', window.devicePixelRatio);
+
+    pixi_app = new PIXI.Application({
+        width: 256,
+        height: 256,
+        antialias: false, // enables extremely weak antialiasing
+        forceFXAA: false,
+        transparent: true,
+        resolution: 1, //window.devicePixelRatio,
+    });
+    pixi_app.renderer.roundPixels = true;
+    console.log(pixi_app.renderer);
+
+    canvas = pixi_app.view;
+    document.body.appendChild(canvas);
+
+    context = new PIXI.Graphics();
+
+    context.fillRect = function(x,y,w,h) {
+        context.lineStyle(0, 0xffffff, 1, 0);
+        context.drawRect(x,y,w,h);
+    }
+    context.save = function() {};
+    context.restore = function() {};
+    context.clip = function() {};
+    context.rect = function() {};
+    context.translate = function() {};
+    context.stroke = function() {};
+    context.beginPath = function() {};
+    context.setLineDash = function() {};
+
+    //pixi_app.stage.addChild(graphics);
+
+    canvas.addEventListener('mousemove', on_mouse_move, false);
+    // touch move? (NO!)
+
+    canvas.addEventListener('mousedown', on_mouse_down, false);
+    canvas.addEventListener('touchstart', on_touch_start, {capture: false, passive: true});
+        
+    canvas.addEventListener('mouseup', on_mouse_up, false);
+    canvas.addEventListener('touchend', on_touch_end, false);
+}
+
+function GetClientWidth() {
+    return 0 | canvas.width;
+}
+
+function GetClientHeight() {
+    return 0 | canvas.height;
+}
+
+function GetContext() {
+    return context;
+}
+
+function GetCanvas() {
+    return canvas;
+}
+
+function UpdateSize() {    
+    let w = window.innerWidth - app.canvas_size_hack;
+    let h = window.innerHeight - app.canvas_size_hack;
+    pixi_app.renderer.resize(w,h);
+}
+
+function FrameClear() {
+    let stage = pixi_app.stage;
+    for (var i = stage.children.length - 1; i >= 0; i--) {	stage.removeChild(stage.children[i]);};
+    context.clear();
+    stage.addChild(context);
+}
+
+const config = {
+    has_drawbox_gradient: 0 | false,
+}
+
+export {
+    initialize,
+    config,
+    DrawBox,
+    DrawRoundedBox,
+    DrawText,
+    DrawLine,
+    DrawCircle,
+    GetCursorX,
+    GetCursorY,
+    GetFontSize,
+    GetClientHeight,
+    GetClientWidth,
+    GetContext,
+    GetCanvas,
+    UpdateSize,
+    //CreateDrawboxGradient,
+    FrameClear,
+}

@@ -1,54 +1,60 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 
-/* ------------------------------------------------------------------ */
-let _gridfonts = {
-    'hint-four': {}
+const _gridfonts = {
+    'hint-four': {
+        [' '] : [],
+        a : [[0, 2, 1, 2], [1, 2, 2, 3], [2, 3, 1, 4], [1, 4, 0, 3], [0, 3, 1, 3]],
+        b : [[0, 0, 0, 1], [0, 1, 0, 2], [0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 1, 2]],
+        c : [[1, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 4]],
+        d : [[2, 0, 2, 1], [2, 1, 2, 2], [2, 2, 2, 3], [2, 3, 1, 4], [1, 4, 0, 3], [0, 3, 1, 2]],
+        e : [[1, 3, 2, 3], [2, 3, 1, 2], [1, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 4]],
+        f : [[2, 0, 1, 1], [1, 1, 1, 2], [1, 2, 1, 3], [1, 3, 1, 4], [0, 2, 1, 2]],
+        g : [[1, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4], [2, 4, 2, 5], [2, 5, 1, 6]],
+        h : [[0, 0, 0, 1], [0, 1, 0, 2], [0, 2, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4]],
+        i : [[1, 2, 1, 3], [1, 3, 1, 4], [1, 1, 2, 0]],
+        j : [[1, 2, 1, 3], [1, 3, 1, 4], [1, 4, 1, 5], [1, 5, 0, 6], [1, 1, 2, 0]],
+        k : [[0, 0, 0, 1], [0, 1, 0, 2], [0, 2, 0, 3], [0, 3, 1, 3], [1, 3, 2, 2], [1, 3, 2, 4]],
+        l : [[1, 0, 1, 1], [1, 1, 1, 2], [1, 2, 1, 3], [1, 3, 2, 4]],
+        m : [[0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4], [1, 3, 1, 4]],
+        n : [[0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4]],
+        o : [[0, 2, 1, 2], [1, 2, 2, 3], [2, 3, 1, 4], [1, 4, 0, 3]],
+        p : [[0, 6, 0, 5], [0, 5, 0, 4], [0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 1, 4]],
+        q : [[2, 6, 2, 5], [2, 5, 2, 4], [2, 4, 2, 3], [2, 3, 1, 2], [1, 2, 0, 3], [0, 3, 1, 4]],
+        r : [[0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 2]],
+        s : [[1, 2, 0, 3], [0, 3, 1, 3], [1, 3, 2, 3], [2, 3, 1, 4], [1, 4, 0, 4]],
+        t : [[1, 1, 1, 2], [1, 2, 1, 3], [1, 3, 1, 4], [1, 4, 2, 3], [0, 2, 1, 2]],
+        u : [[0, 2, 0, 3], [0, 3, 0, 4], [0, 4, 1, 4], [1, 4, 2, 3], [2, 3, 2, 2]],
+        v : [[0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 2, 2]],
+        w : [[0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 2, 2], [1, 2, 1, 3]],
+        x : [[0, 2, 1, 3], [1, 3, 2, 4], [2, 2, 1, 3], [1, 3, 0, 4]],
+        y : [[0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 2, 4], [2, 4, 2, 5], [2, 5, 1, 6]],
+        z : [[1, 2, 2, 2], [2, 2, 1, 3], [1, 3, 0, 4], [0, 4, 1, 4], [1, 4, 2, 4]],        
+    }
 }
-let _letters = 'abcdefghijklmnopqrstuvwxyz';
-let _f = _gridfonts['hint-four'];
+
+const _f = _gridfonts['hint-four'];
 // list of segments, each segment is a standalone stroke from x1,y1 to x2,y2
-_f[' '] = [];
-_f.a = [[0, 2, 1, 2], [1, 2, 2, 3], [2, 3, 1, 4], [1, 4, 0, 3], [0, 3, 1, 3]];
-_f.b = [[0, 0, 0, 1], [0, 1, 0, 2], [0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 1, 2]];
-_f.c = [[1, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 4]];
-_f.d = [[2, 0, 2, 1], [2, 1, 2, 2], [2, 2, 2, 3], [2, 3, 1, 4], [1, 4, 0, 3], [0, 3, 1, 2]];
-_f.e = [[1, 3, 2, 3], [2, 3, 1, 2], [1, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 4]];
-_f.f = [[2, 0, 1, 1], [1, 1, 1, 2], [1, 2, 1, 3], [1, 3, 1, 4], [0, 2, 1, 2]];
-_f.g = [[1, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4], [2, 4, 2, 5], [2, 5, 1, 6]];
-_f.h = [[0, 0, 0, 1], [0, 1, 0, 2], [0, 2, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4]];
-_f.i = [[1, 2, 1, 3], [1, 3, 1, 4], [1, 1, 2, 0]];
-_f.j = [[1, 2, 1, 3], [1, 3, 1, 4], [1, 4, 1, 5], [1, 5, 0, 6], [1, 1, 2, 0]];
-_f.k = [[0, 0, 0, 1], [0, 1, 0, 2], [0, 2, 0, 3], [0, 3, 1, 3], [1, 3, 2, 2], [1, 3, 2, 4]];
-_f.l = [[1, 0, 1, 1], [1, 1, 1, 2], [1, 2, 1, 3], [1, 3, 2, 4]];
-_f.m = [[0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4], [1, 3, 1, 4]];
-_f.n = [[0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 2, 4]];
-_f.o = [[0, 2, 1, 2], [1, 2, 2, 3], [2, 3, 1, 4], [1, 4, 0, 3]];
-_f.p = [[0, 6, 0, 5], [0, 5, 0, 4], [0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 3], [2, 3, 1, 4]];
-_f.q = [[2, 6, 2, 5], [2, 5, 2, 4], [2, 4, 2, 3], [2, 3, 1, 2], [1, 2, 0, 3], [0, 3, 1, 4]];
-_f.r = [[0, 4, 0, 3], [0, 3, 1, 2], [1, 2, 2, 2]];
-_f.s = [[1, 2, 0, 3], [0, 3, 1, 3], [1, 3, 2, 3], [2, 3, 1, 4], [1, 4, 0, 4]];
-_f.t = [[1, 1, 1, 2], [1, 2, 1, 3], [1, 3, 1, 4], [1, 4, 2, 3], [0, 2, 1, 2]];
-_f.u = [[0, 2, 0, 3], [0, 3, 0, 4], [0, 4, 1, 4], [1, 4, 2, 3], [2, 3, 2, 2]];
-_f.v = [[0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 2, 2]];
-_f.w = [[0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 2, 2], [1, 2, 1, 3]];
-_f.x = [[0, 2, 1, 3], [1, 3, 2, 4], [2, 2, 1, 3], [1, 3, 0, 4]];
-_f.y = [[0, 2, 0, 3], [0, 3, 1, 4], [1, 4, 2, 3], [2, 3, 2, 4], [2, 4, 2, 5], [2, 5, 1, 6]];
-_f.z = [[1, 2, 2, 2], [2, 2, 1, 3], [1, 3, 0, 4], [0, 4, 1, 4], [1, 4, 2, 4]];
 
-let _gridfont_gradient = make_drawbox_gradient(
-    context,
-    400, 400,
-    1000, 1000,
-    Color(0x00, 0xB5, 0xE3, 255),
-    Color(255, 0, 255, 255)
-);
+const _gridfont_chars_a = 'abcdefghijklmnopqrstuvwxyz '.split('');
+const _gridfont_chars = {};  
 
-//global init
-let _gridfont_chars_a = 'abcdefghijklmnopqrstuvwxyz '.split('');
-let _gridfont_chars = {};
 for (let i = 0; i < _gridfont_chars_a.length; i++) {
     _gridfont_chars[_gridfont_chars_a[i]] = 0 | true;
+}                
+
+let _gridfont_gradient;
+
+function initialize() {
+    if (ui.driver.config.has_drawbox_gradient) {
+        _gridfont_gradient = ui.driver.CreateDrawboxGradient(
+            ui.driver.GetContext(),
+            400, 400,
+            1000, 1000,
+            ui.Color(0x00, 0xB5, 0xE3, 255),
+            ui.Color(255, 0, 255, 255)
+        );    
+    }
 }
 
 // http://cogsci.indiana.edu/gridfonts.html
@@ -63,9 +69,10 @@ function do_gridfont(uiid, s, name, x, y, scale, reset) {
     let complete = 0 | true;
     let reset_complete = 0 | true;
 
-    context.lineWidth = 1;    
+    uidraw.push_linewidth(1.5);
+    uidraw.push_strokestyle(_gridfont_gradient);
 
-    context.strokeStyle = _gridfont_gradient;
+    uidraw.begin_path();
 
     for (let i = 0; i < a.length; i++) {
         let letter = a[i];
@@ -78,8 +85,10 @@ function do_gridfont(uiid, s, name, x, y, scale, reset) {
         reset_complete = reset_complete && _[_reset_complete];
     }
 
-    context.strokeStyle = uidraw.default_line_color;
-    context.lineWidth = 1;    
+    uidraw.stroke();
+
+    uidraw.pop_strokestyle();
+    uidraw.pop_linewidth();    
 
     return [complete, reset_complete];
 }
@@ -107,17 +116,6 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
 
     const segment = state[_segment];
     let partial = state[_partial];
-
-    // opengl and canvas...
-    // so i have perf issue here
-    // draw_line is bad because in canvas it's better to stroke a complex path than many small paths
-    // so that optimization should be possible with the api..
-    // reset_line_batch()
-    // draw_line_batch()
-    // but.. wondering about what this means for opengl drivers...
-    // ... if both drivers allow (or can allow lineto/moveto for multi segment paths)
-    // (does pixi's shader-based canvas-like api allow moveto/lineto?) A: YES, it does...
-    // so my drive could do lineto/moveto at least for now since it seems reasonable to do it with webgl shader api
     
     // draw lines up to segment count
     // sometimes segment is > fl.length due to prev frame    
@@ -131,7 +129,8 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
             let y1 = 0 | ( y + (b1 * scale) );
             let x2 = 0 | ( x + (a2 * scale) );
             let y2 = 0 | ( y + (b2 * scale) );
-            draw_line(x1, y1, x2, y2);
+            uidraw.move_to(x1, y1);
+            uidraw.line_to(x2, y2);
         }
     }
     // now draw current line... over multiple frames...
@@ -151,7 +150,8 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
 
         let p1 = 0 | (x1 + dx * partial / 10);
         let p2 = 0 | (y1 + dy * partial / 10);
-        draw_line(x1, y1, p1, p2);
+        uidraw.move_to(x1, y1);
+        uidraw.line_to(p1, p2);
 
         // i promoted partial from float to int, so new partial 1 == old partial 0.1
         // this means some of the logic changes from 1 to 10, and i divide by 10 for local calcs
@@ -191,5 +191,6 @@ function do_gridfont_letter(uiid, name, x, y, letter, scale, reset) {
 }
 
 export {
-    do_gridfont
+    do_gridfont,
+    initialize
 };

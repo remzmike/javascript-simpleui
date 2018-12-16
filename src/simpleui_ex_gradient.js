@@ -1,8 +1,14 @@
 import * as ui from './simpleui.js';
+import { Color, make_css_color } from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 
-const css_line_color2 = make_css_color(Color(255, 255, 255, 255));
-const css_line_color1 = make_css_color(Color(0, 0, 0, 255))
+let css_line_color2;
+let css_line_color1;
+
+function initialize() {
+    css_line_color2 = make_css_color(Color(255, 255, 255, 255));
+    css_line_color1 = make_css_color(Color(0, 0, 0, 255))    
+}
 
 function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
     let _;
@@ -37,25 +43,43 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
         uidraw.rectangle(Rectangle(layout[_x], layout[_y], dim_w, dim_h), uidraw.normal_face);
 
         // grid lines
-        context.lineWidth = 1;
-        context.strokeStyle = make_css_color(Color(255, 255, 255, 255));
-        draw_line(layout[_x] + dim_w_half, layout[_y], layout[_x] + dim_w_half, layout[_y] + dim_h);
-        draw_line(layout[_x], layout[_y] + dim_h_half, layout[_x] + dim_w, layout[_y] + dim_h_half);
+        const stroke_color = make_css_color(Color(255, 255, 255, 255));
+        uidraw.push_strokestyle(stroke_color);
+        uidraw.line(layout[_x] + dim_w_half, layout[_y], layout[_x] + dim_w_half, layout[_y] + dim_h);
+        uidraw.line(layout[_x], layout[_y] + dim_h_half, layout[_x] + dim_w, layout[_y] + dim_h_half);
+        uidraw.pop_strokestyle();
 
         // gradient swatch
         uidraw.rectangle(Rectangle(layout[_x] + dim_w_quarter, layout[_y] + dim_h_quarter, dim_w_half, dim_h_half), uidraw.accent);
 
-        // line between points
-        context.lineWidth = 2;
-        context.strokeStyle = css_line_color1;        
-        draw_line(layout[_x] + p1_x - 1, layout[_y] + p1_y - 2, layout[_x] + p2_x - 1, layout[_y] + p2_y - 2);
-        context.strokeStyle = css_line_color2;
-        draw_line(layout[_x] + p1_x, layout[_y] + p1_y, layout[_x] + p2_x, layout[_y] + p2_y);
-        context.lineWidth = 1;
+        // line between points 1     
+        // --->
+        const handle1_rect = Rectangle(p1_x - grab_dim_half, p1_y - grab_dim_half, grab_dim, grab_dim);
+        const handle2_rect = Rectangle(p2_x - grab_dim_half, p2_y - grab_dim_half, grab_dim, grab_dim);
+
+        const dx = handle2_rect[_x] - handle1_rect[_x];
+        const dy = handle2_rect[_y] - handle1_rect[_y];
+
+        const radians = Math.atan2(dx, dy);
+        const pt = ui.angled_norm_line(radians, grab_dim_half);
+        
+        uidraw.push_linewidth(3);
+        uidraw.push_strokestyle(css_line_color1);    
+        uidraw.line(layout[_x] + p1_x + pt[_x], layout[_y] + p1_y + pt[_y], layout[_x] + p2_x - pt[_x], layout[_y] + p2_y - pt[_y]);
+        uidraw.pop_strokestyle();
+        uidraw.pop_linewidth();
+        // line between points 2
+        uidraw.push_linedash([2,2]);
+        uidraw.push_linewidth(2);        
+        uidraw.push_strokestyle(css_line_color2);
+        uidraw.line(layout[_x] + p1_x + pt[_x], layout[_y] + p1_y + pt[_y], layout[_x] + p2_x - pt[_x], layout[_y] + p2_y - pt[_y]);        
+        uidraw.pop_strokestyle();
+        uidraw.pop_linewidth();
+        uidraw.pop_linedash();
+        // <---
 
         const uiid_pt1 = uiid + '-pt1';
-        const handle1_rect = Rectangle(p1_x - grab_dim_half, p1_y - grab_dim_half, grab_dim, grab_dim);
-        _ = ui.handle(uiid_pt1, handle1_rect, p1_x, p1_y);
+        _ = ui.reticle(uiid_pt1, handle1_rect, p1_x, p1_y);
         if (_[_changed]) {
             changed = 0 | changed | _[_changed];
             result_x1 = 0 | Math.min(max_x, Math.max(min_x, _[_x1] + min_x));
@@ -63,31 +87,15 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
         }
 
         const uiid_pt2 = uiid + '-pt2'
-        const handle2_rect = Rectangle(p2_x - grab_dim_half, p2_y - grab_dim_half, grab_dim, grab_dim);
-        _ = ui.handle(uiid_pt2, handle2_rect, p2_x, p2_y);
+        _ = ui.reticle(uiid_pt2, handle2_rect, p2_x, p2_y);
         if (_[_changed]) {
             changed = 0 | changed | _[_changed];
             result_x2 = 0 | Math.min(max_x, Math.max(min_x, _[_x1] + min_x));
             result_y2 = 0 | Math.min(max_y, Math.max(min_y, _[_y1] + min_y));
         }
-
-        const handle1_nub = ui.layout_translated(uidraw.rectangle_erode(handle1_rect, 4));
-        uidraw.rectangle(handle1_nub, uidraw.raised_face);
-        if (ui.state.item_hovered == uiid_pt1) {
-            uidraw.rectangle(handle1_nub, uidraw.raised_accent);
-        }
-
-        const handle2_nub = ui.layout_translated(uidraw.rectangle_erode(handle2_rect, 4));
-        uidraw.rectangle(handle2_nub, uidraw.raised_face);
-        if (ui.state.item_hovered == uiid_pt2) {
-            uidraw.rectangle(handle2_nub, uidraw.raised_accent);
-        }
     }
     ui.layout_pop();
     ui.layout_increment2(dim_w, 0);
-
-    context.strokeStyle = uidraw.default_line_color;
-    context.lineWidth = 1;
 
     return [
         0 | changed,
@@ -99,5 +107,6 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
 }
 
 export {
-    do_gradient_stroke_edit
+    do_gradient_stroke_edit,
+    initialize
 };

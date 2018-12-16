@@ -1,26 +1,61 @@
 import * as m_simpleui from './simpleui.js';
-import { Rectangle, Point } from './simpleui.js';
+import { Rectangle, Point, Color } from './simpleui.js';
+import * as consts from './simpleui_consts.js';
+// later: these will be in a var/obj/namespace here, so i can switch to other drivers
+import {
+    DrawBox,
+    DrawBoxSoft,
+    DrawBoxSoftRight,
+    DrawBoxSoftLeft,
+    DrawBoxSoftTop,
+    DrawBoxSoftBottom,
+    DrawText,
+    DrawLine,
+    DrawCircle,
+    DrawCircleOutline,
+    GetCursorX,
+    GetCursorY,
+    GetFontSize,
+    SetStrokeStyle,
+    SetLineWidth,
+    SetLineDash,
+    Stroke,
+    BeginPath,
+    MoveTo,
+    LineTo,
+    BeginClip,
+    EndClip,
+} from './simpleui_driver_html5_canvas.js';
+
+let commands = [];
+
+const _x = consts._x;
+const _y = consts._y;
+const _w = consts._w;
+const _h = consts._h;
+const _Hovered = consts._Hovered;
+const _Held = consts._Held;
 
 let round = Math.round;
 
-export let font_size = GetFontSize();
-export let default_line_color = Color(255, 255, 255, 255);
-export let default_text_color = Color(255, 255, 255, 255);
-//export let default_text_color = Color(0x93, 0xa1, 0xa1, 255);
+export const default_line_color = Color(255, 255, 255, 255);
+export const default_text_color = Color(255, 255, 255, 255);
 
-export let accent = Color(120, 180, 140, 127);
-export let bg_color = Color(91, 98, 96, 255);
-export let panel_color = Color(46, 46, 46, 255);
+export const accent = Color(120, 180, 140, 127);
+export const bg_color = Color(91-15, 98-15, 96-15, 255);
+export const panel_color = Color(46, 46, 46, 255);
 
-export let normal_back = Color(36, 36, 36, 255); // _sol_bg2;
-export let normal_face = Color(72, 72, 72, 255); // Color(60, 79, 117, 255); // _sol_content1; // Color(108, 102, 99, 0);
-export let activating_face = Color(0, 204, 123, 0 | 255*0.8);
+export const normal_back = Color(36, 36, 36, 255);
+export const normal_face = Color(72, 72, 72, 255);
+export const activating_face = Color(0, 204, 123, 0 | 255*0.8);
 
-export let raised_face = Color(180, 180+9, 180-3, 255);
-export let raised_accent = Color(250, 255, 240, 255);
+export const raised_face = Color(180, 180+9, 180-3, 255);
+export const raised_accent = Color(250, 255, 240, 255);
 
-export let focus_back = normal_back;
-export let focus_face = normal_face;
+export const focus_back = normal_back;
+export const focus_face = normal_face;
+
+export const font_size = GetFontSize();
 
 // added these when porting to js and html5 canvas
 // dangit, the box_gradient value types need to be in an exported object apparently since the module isn't one...
@@ -92,20 +127,50 @@ function point_translate(pt, x, y) {
     return pt;
 }
 
-const _text_color = Color(255,255,255,255);
 function draw_text(text, x, y, color) {
     if (m_simpleui.config.drawtext_enable) {
-        //DrawText(text, x, y, color);
-        DrawText(text, x, y, _text_color);
+        DrawText(text, x, y, color);
+        //commands.push(DrawText, 4, text, x, y, color);
     }
 }
 
 function draw_rectangle(rect, color) {
     DrawBox(rect, color);
+    //commands.push(DrawBox, 2, rect, color);
 }
 
-function draw_rounded_rectangle(rect, color) {
-    DrawRoundedBox(rect, color);
+function draw_rectangle_soft(rect, color) {
+    DrawBoxSoft(rect, color);
+    //commands.push(DrawRoundedBox, 2, rect, color);
+}
+
+function draw_rectangle_soft_right(rect, color) {
+    DrawBoxSoftRight(rect, color);
+}
+
+function draw_rectangle_soft_left(rect, color) {
+    DrawBoxSoftLeft(rect, color);
+}
+
+function draw_rectangle_soft_top(rect, color) {
+    DrawBoxSoftTop(rect, color);
+}
+
+function draw_rectangle_soft_bottom(rect, color) {
+    DrawBoxSoftBottom(rect, color);
+}
+
+function draw_circle(rect, color) {
+    DrawCircle(rect, color);
+}
+
+function draw_circle_outline(rect, color) {
+    DrawCircleOutline(rect, color);
+}
+
+function draw_line(x1, y1, x2, y2) {
+    DrawLine(x1, y1, x2, y2);
+    //commands.push(DrawLine, 4, x1, y1, x2, y2);
 }
 
 function draw_label(text, pt, color) {
@@ -115,14 +180,14 @@ function draw_label(text, pt, color) {
 function draw_button(text, rect, state) {
     let rect1 = rectangle_erode(rect, 1);
     
-    draw_rounded_rectangle(rect, normal_back);
+    draw_rectangle_soft(rect, normal_back);
 
     if (state[_Held]) {
-        draw_rounded_rectangle(rect, activating_face);
+        draw_rectangle_soft(rect, activating_face);
     } else if (state[_Hovered]) {
-        draw_rounded_rectangle(rect1, accent);
+        draw_rectangle_soft(rect1, accent);
     } else {        
-        draw_rounded_rectangle(rect1, normal_face);
+        draw_rectangle_soft(rect1, normal_face);
     }
 
     let text_pos = point_translate(vertical_center_text(rect1), 5, 0);
@@ -164,7 +229,7 @@ function draw_progressbar(rect, max, value) {
     draw_rectangle(rect, normal_back);
     const progw = 0 | (rect2[_w] * (value / max));
     let progrect = Rectangle(rect2[_x], rect2[_y], progw, rect2[_h]);
-    draw_rounded_rectangle(progrect, accent);
+    draw_rectangle_soft(progrect, accent);
 }
 
 function draw_slider(uiid, rect, state, min, max, value, handle_label) {
@@ -199,7 +264,7 @@ function draw_slider(uiid, rect, state, min, max, value, handle_label) {
     let hrect = Rectangle(rectx, recty+1, handlew, handledim-2);
 
     draw_rectangle(rect, normal_back);
-    draw_rounded_rectangle(progrect, accent);
+    draw_rectangle_soft(progrect, accent);
 
     if (state[_Held]) {
         draw_rectangle(hrect, activating_face);
@@ -211,7 +276,7 @@ function draw_slider(uiid, rect, state, min, max, value, handle_label) {
     if (handle_label) {
         const textx = 0 | (rect[_x] + rect[_w] - 16);
         const texty = 0 | (hrect[_y] + hrect[_h] / 2 - 8);
-        draw_text(handle_label, textx, texty, Color(0, 0, 0, 127));
+        draw_text(handle_label, textx, texty, Color(255, 255, 255, 255));
     }
 }
 
@@ -247,7 +312,7 @@ function draw_vslider(uiid, rect, state, min, max, value, handle_label) {
     let hrect = Rectangle(rectx+1, recty, handledim-2, handleh);
 
     draw_rectangle(rect, normal_back);
-    draw_rounded_rectangle(progrect, accent);
+    draw_rectangle_soft(progrect, accent);
 
     if (state[_Held]) {
         draw_rectangle(hrect, activating_face);
@@ -259,11 +324,31 @@ function draw_vslider(uiid, rect, state, min, max, value, handle_label) {
     if (handle_label) {
         const textx = 0 | (hrect[_x] + hrect[_w] / 2 - 5);
         const texty = 0 | (rect[_y] + rect[_h] - 16);
-        draw_text(handle_label, textx, texty, Color(0, 0, 0, 127));
+        draw_text(handle_label, textx, texty, Color(255, 255, 255, 255));
     }
 }
 
 function draw_checkbutton(text, rect, state, value, text_offset_x, text_offset_y) {
+    draw_checkbutton_override(text, rect, state, value, text_offset_x, text_offset_y, draw_rectangle);
+}
+
+function draw_checkbutton_soft_right(text, rect, state, value, text_offset_x, text_offset_y) {
+    draw_checkbutton_override(text, rect, state, value, text_offset_x, text_offset_y, draw_rectangle_soft_right);
+}
+
+function draw_checkbutton_soft_left(text, rect, state, value, text_offset_x, text_offset_y) {
+    draw_checkbutton_override(text, rect, state, value, text_offset_x, text_offset_y, draw_rectangle_soft_left);
+}
+
+function draw_checkbutton_soft_top(text, rect, state, value, text_offset_x, text_offset_y) {
+    draw_checkbutton_override(text, rect, state, value, text_offset_x, text_offset_y, draw_rectangle_soft_top);
+}
+
+function draw_checkbutton_soft_bottom(text, rect, state, value, text_offset_x, text_offset_y) {
+    draw_checkbutton_override(text, rect, state, value, text_offset_x, text_offset_y, draw_rectangle_soft_bottom);
+}
+
+function draw_checkbutton_override(text, rect, state, value, text_offset_x, text_offset_y, draw_rectangle) {
 
     let rect1 = rectangle_erode(rect, 1);
 
@@ -285,7 +370,8 @@ function draw_checkbutton(text, rect, state, value, text_offset_x, text_offset_y
     if (text_offset_x == null || text_offset_y == null) {
         text_pos = point_translate(vertical_center_text(rect1), 3, 0);
     } else {
-        text_pos = point_translate(rect1, text_offset_x, text_offset_y);
+        const rect_text = rectangle_erode(rect, 1);
+        text_pos = point_translate(rect_text, text_offset_x, text_offset_y);
     }
     if (state[_Held]) {
         text_pos[_y] = text_pos[_y] + 1;
@@ -305,6 +391,134 @@ function draw_handle(uiid, rect, state) {
     }
 }
 
+function draw_reticle(uiid, rect, state) {
+    push_linewidth(6);
+    if (state[_Held]) {        
+        draw_circle_outline(rect, activating_face);
+    } else if (state[_Hovered]) {        
+        draw_circle_outline(rect, accent);
+    } else {
+        draw_circle_outline(rect, normal_back);
+    }
+    pop_linewidth();    
+
+    push_linewidth(2);
+    draw_circle_outline(rect, Color(255,255,255,255));
+    pop_linewidth();
+}
+
+// StrokeStyle
+
+const _stack_strokestyle = [default_line_color];
+
+function push_strokestyle(value) {
+    _stack_strokestyle.push(value);
+    SetStrokeStyle(value);
+    //commands.push(SetStrokeStyle, 1, value);
+}
+
+function pop_strokestyle() {
+    _stack_strokestyle.pop();
+    const prev = _stack_strokestyle[_stack_strokestyle.length-1];
+    SetStrokeStyle(prev);
+    //commands.push(SetStrokeStyle, 1, prev);
+}
+
+// LineWidth
+
+const _stack_linewidth = [1];
+
+function push_linewidth(value) {
+    _stack_linewidth.push(value);
+    SetLineWidth(value);
+    //commands.push(SetLineWidth, 1, value);
+}
+
+function pop_linewidth() {
+    _stack_linewidth.pop();
+    const prev = _stack_linewidth[_stack_linewidth.length-1];
+    SetLineWidth(prev);
+    //commands.push(SetLineWidth, 1, prev);
+}
+
+// LineDash
+
+const _stack_linedash = [[]];
+
+function push_linedash(value) {
+    console.assert(value);
+    console.assert(value != null);
+    _stack_linedash.push(value);
+    SetLineDash(value);
+    //commands.push(SetLineDash, 1, value);
+}
+
+function pop_linedash() {
+    console.assert(_stack_linedash.length > 0);
+    _stack_linedash.pop();
+    const prev = _stack_linedash[_stack_linedash.length-1];
+    console.assert(prev != null);
+    SetLineDash(prev);
+    //commands.push(SetLineDash, 1, prev);
+}
+
+//
+
+function stroke() {
+    Stroke();
+    //commands.push(Stroke, 0);
+}
+
+function begin_path() {
+    BeginPath();
+    //commands.push(BeginPath, 0);
+}
+
+function move_to(x, y) {
+    MoveTo(x, y);
+    //commands.push(MoveTo, 2, x, y);
+}
+
+function line_to(x, y) {
+    LineTo(x, y);
+    //commands.push(LineTo, 2, x, y);
+}
+
+function begin_clip(rect) {
+    BeginClip(rect);
+    //commands.push(BeginClip, 1, rect);
+}
+
+function end_clip() {
+    EndClip();
+    //commands.push(EndClip, 0);
+}
+
+//
+
+/*
+const _checkbutton = 0;
+const _handle = 0;
+const _renderer_stacks = {
+    [_checkbutton]: [draw_checkbutton],
+    [_handle]: [draw_handle],
+};
+
+function get_renderer(key) {
+    console.assert(_renderer_stacks[key]); // alls keys should already exist (add above)
+    const stack = _renderer_stacks[key];
+    return stack[stack.length-1];
+}
+
+function push_renderer(key, render_function) {
+    console.assert(render_function);
+    _renderer_stacks[key].push(render_function);
+}
+
+function pop_renderer(key) {
+    return _renderer_stacks[key].pop();
+}*/
+
 export {
     get_centered_offsets,
     vertical_center,
@@ -316,8 +530,16 @@ export {
     point_translate,
     //
     draw_text as text,
+    //
     draw_rectangle as rectangle,
-    draw_rounded_rectangle as rounded_rectangle,
+    draw_rectangle_soft as rectangle_soft,
+    draw_rectangle_soft_right as rectangle_soft_right,
+    draw_rectangle_soft_left as rectangle_soft_left,
+    draw_rectangle_soft_top as rectangle_soft_top,
+    draw_rectangle_soft_bottom as rectangle_soft_bottom,
+    //
+    draw_circle as circle,
+    draw_line as line,
     draw_label as label,
     draw_button as button,
     draw_checkbox as checkbox,
@@ -325,5 +547,27 @@ export {
     draw_slider as slider,
     draw_vslider as vslider,
     draw_checkbutton as checkbutton,
+    draw_checkbutton_soft_right as checkbutton_soft_right,
+    draw_checkbutton_soft_left as checkbutton_soft_left,
+    draw_checkbutton_soft_top as checkbutton_soft_top,
+    draw_checkbutton_soft_bottom as checkbutton_soft_bottom,
     draw_handle as handle,
+    draw_reticle as reticle,
+    //
+    commands,
+    push_strokestyle,
+    pop_strokestyle,
+    push_linewidth,
+    pop_linewidth,
+    push_linedash,
+    pop_linedash,
+    stroke,
+    begin_path,
+    move_to,
+    line_to,
+    begin_clip,
+    end_clip,
+    //
+    //_checkbutton,
+    //get_renderer, push_renderer, pop_renderer,
 };
