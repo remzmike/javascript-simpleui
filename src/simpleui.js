@@ -93,9 +93,13 @@ const uistate = {
     item_hovered: null,
     item_held: null,
     // frame items / 'events'
+    mouse_went_up: false,
     item_went_down: false,
     item_went_downup: false,
-    mouse_went_up: false,
+    item_went_down_middle: false,
+    item_went_downup_middle: false,
+    item_went_down_right: false,
+    item_went_downup_right: false,    
     collapsed_panel_index: 0,
 };
 
@@ -402,11 +406,19 @@ function layout_translated(local_rect) {
     return Rectangle(x, y, w, h);
 }
 
-function on_mousepressed(x, y, button) {
+function on_mousepressed(x, y, button) {    
     if (button == _left) {
         uistate.item_went_down = uistate.item_hovered;
         uistate.item_held = uistate.item_hovered;
-        console.log('[item went down]', uistate.item_hovered);
+        console.log('[item_went_down]', uistate.item_hovered);
+    } else if (button == _middle) {
+        uistate.item_went_down_middle = uistate.item_hovered;
+        uistate.item_held_middle = uistate.item_hovered;
+        console.log('[item_went_down_middle]', uistate.item_hovered);
+    } else if (button == _right) {
+        uistate.item_went_down_right = uistate.item_hovered;
+        uistate.item_held_right = uistate.item_hovered;
+        console.log('[item_went_down_right]', uistate.item_hovered);
     }
 }
 
@@ -416,8 +428,20 @@ function on_mousereleased(x, y, button) {
             uistate.item_went_downup = uistate.item_hovered;
             console.log('[item went downup]', uistate.item_hovered);
         }
-        uistate.mouse_went_up = 0 | true;
+        uistate.mouse_went_up = 0 | true; // only left click does this
         uistate.item_held = null;
+    } else if (button == _middle) {
+        if (uistate.item_held_middle == uistate.item_hovered) {
+            uistate.item_went_downup_middle = uistate.item_hovered;
+            console.log('[item went downup middle]', uistate.item_hovered);
+        }
+        uistate.item_held_middle = null;
+    } else if (button == _right) {
+        if (uistate.item_held_right == uistate.item_hovered) {
+            uistate.item_went_downup_right = uistate.item_hovered;
+            console.log('[item went downup right]', uistate.item_hovered);
+        }
+        uistate.item_held_right = null;
     }
 }
 
@@ -504,9 +528,13 @@ function run(fn) {
     uistate.layout_count = 0 | 0;
     uistate.hotspot_count = 0 | 0;
     // ~events~
+    uistate.mouse_went_up = 0 | false;
     uistate.item_went_down = 0 | false;
     uistate.item_went_downup = 0 | false;
-    uistate.mouse_went_up = 0 | false;
+    uistate.item_went_down_middle = 0 | false;
+    uistate.item_went_downup_middle = 0 | false;
+    uistate.item_went_down_right = 0 | false;
+    uistate.item_went_downup_right = 0 | false;
     // this probably won't stay here
     uistate.collapsed_panel_index = 0 | 0;
 }

@@ -173,6 +173,17 @@ function DrawBox(rect, color) {
     _DrawBoxGradient(x, y, w, h);
 }
 
+function DrawBoxOutline(rect, color) {
+    let x = rect[_x];
+    let y = rect[_y];
+    let w = rect[_w];
+    let h = rect[_h];
+
+    context.strokeStyle = ui.make_css_color(color);
+
+    context.strokeRect(x, y, w, h);
+}
+
 function DrawBoxSoft(rect, color) {
     let x = rect[_x];
     let y = rect[_y];
@@ -333,8 +344,8 @@ function DrawLine(x1, y1, x2, y2) {
 
 /* */
 
-function initialize(canvasId) {
-    canvas = document.getElementById(canvasId);
+function initialize(canvas_id) {
+    canvas = document.getElementById(canvas_id);
     console.assert(canvas);
     context = canvas.getContext('2d', {alpha: false});
 
@@ -350,6 +361,9 @@ function initialize(canvasId) {
 
     canvas.addEventListener('mouseup', on_mouse_up, false);
     canvas.addEventListener('touchend', on_touch_end, false);
+
+    // disable default canvas right click
+    canvas.addEventListener("contextmenu", function(e) {e.preventDefault(); e.stopPropagation(); return false;}, true);
 
     ui.config.drawbox_gradient = CreateDrawboxGradient(
         context,
@@ -382,11 +396,32 @@ function UpdateSize() {
     canvas.height = window.innerHeight - app.canvas_size_hack;
 }
 
-function CreateDrawboxGradient(context, x1, y1, x2, y2, colorstop1, colorstop2) {
+function CreateDrawboxGradient(context, x1, y1, x2, y2, input_color1, input_color2) {
+    let color1;
+    let color2;
+    // ok, so firefox renders gradients WILDLY differently, something different with alpha
+    if (is_browser_gecko()) {
+        color1 = Color(
+            input_color1[_r],
+            input_color1[_g],
+            input_color1[_b],
+            0 | input_color1[_a] / 2
+        );
+        color2 = Color(
+            input_color2[_r],
+            input_color2[_g],
+            input_color2[_b],
+            0 | input_color2[_a] / 2
+        );
+    } else {
+        color1 = input_color1;
+        color2 = input_color2;
+    }
+
     console.assert(context);
     let grd = context.createLinearGradient(x1, y1, x2, y2);
-    grd.addColorStop(0.0, make_css_color(colorstop1));
-    grd.addColorStop(1.0, make_css_color(colorstop2));
+    grd.addColorStop(0.0, make_css_color(color1));
+    grd.addColorStop(1.0, make_css_color(color2));
     return grd;    
 }
 
@@ -445,6 +480,7 @@ export {
     initialize,
     config,
     DrawBox,
+    DrawBoxOutline,
     DrawBoxSoft,
     DrawBoxSoftRight,
     DrawBoxSoftLeft,

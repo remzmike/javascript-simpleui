@@ -411,8 +411,7 @@ function do_gradient_panel(uiid, first_x, first_y, first_visible, first_expanded
                 context,
                 uidraw.box_gradient.x1, uidraw.box_gradient.y1,
                 uidraw.box_gradient.x2, uidraw.box_gradient.y2,
-                uidraw.box_gradient.color_stop1,
-                uidraw.box_gradient.color_stop2
+                uidraw.box_gradient.color_stop1, uidraw.box_gradient.color_stop2
             );
         }
     }

@@ -93,7 +93,7 @@ function do_expanded(uiid, rect, state) { // move back to other func later
             } else {
                 // if they click collapsed handle, panel expands
                 state.expanded = 0 | !state.expanded;
-                // cancel item_held when they do this... *shrug*
+                // cancel item_held when they do this... *shrug* (todo:later:architecture)
                 if (ui.state.item_held == uiid_handle) {
                     ui.state.item_held = null;
                 }

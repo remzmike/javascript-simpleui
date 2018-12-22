@@ -4,6 +4,7 @@ import * as consts from './simpleui_consts.js';
 // later: these will be in a var/obj/namespace here, so i can switch to other drivers
 import {
     DrawBox,
+    DrawBoxOutline,
     DrawBoxSoft,
     DrawBoxSoftRight,
     DrawBoxSoftLeft,
@@ -49,7 +50,7 @@ export const normal_back = Color(36, 36, 36, 255);
 export const normal_face = Color(72, 72, 72, 255);
 export const activating_face = Color(0, 204, 123, 0 | 255*0.8);
 
-export const raised_face = Color(180, 180+9, 180-3, 255);
+export const raised_face = Color(180-10, 180+9-10, 180-3-10, 255);
 export const raised_accent = Color(250, 255, 240, 255);
 
 export const focus_back = normal_back;
@@ -137,6 +138,10 @@ function draw_text(text, x, y, color) {
 function draw_rectangle(rect, color) {
     DrawBox(rect, color);
     //commands.push(DrawBox, 2, rect, color);
+}
+
+function draw_rectangle_outline(rect, color) {
+    DrawBoxOutline(rect, color);
 }
 
 function draw_rectangle_soft(rect, color) {
@@ -532,6 +537,7 @@ export {
     draw_text as text,
     //
     draw_rectangle as rectangle,
+    draw_rectangle_outline as rectangle_outline,
     draw_rectangle_soft as rectangle_soft,
     draw_rectangle_soft_right as rectangle_soft_right,
     draw_rectangle_soft_left as rectangle_soft_left,
@@ -539,6 +545,7 @@ export {
     draw_rectangle_soft_bottom as rectangle_soft_bottom,
     //
     draw_circle as circle,
+    draw_circle_outline as circle_outline,
     draw_line as line,
     draw_label as label,
     draw_button as button,
