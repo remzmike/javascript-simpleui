@@ -1,6 +1,6 @@
 ([demo](https://remzmike.github.io/simpleui/))
 
-![screenshot](thumb.png)
+![screenshot](simpleui-v04-trix.png)
 
 * simpleui - v00 - 12/8/2016 10:19:01 AM - preview release
 * simpleui - v01 - 9/16/2018 1:03 PM - added webgl support
