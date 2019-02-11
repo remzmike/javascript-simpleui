@@ -25,18 +25,6 @@ function is_touch_device() {
     return (navigator.maxTouchPoints || 'ontouchstart' in document.documentElement);
 }
 
-// https://stackoverflow.com/questions/32617798/how-to-detect-a-browsers-layout-engine-in-javascript
-function is_browser_gecko() {
-    if(navigator.userAgent.search(/trident/i)>0){
-        //Internet Explorer
-    } else if(navigator.userAgent.search(/webkit/i)>0){
-        //Chrome, Safari
-    } else if(navigator.userAgent.search(/gecko/i)>0){
-        return true; // must be last condition, since 'gecko' may be included in above engine userAgents for weird reasons
-    }   
-    return false; 
-}
-
 function randomize_color(color) {
     let a = [_r, _g, _b];
     for (let i = 0; i < a.length; i++) {

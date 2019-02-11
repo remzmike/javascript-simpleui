@@ -10,8 +10,8 @@ let _mouse_pos = [0 | 0, 0 | 0];
 
 function on_mouse_move(evt) {
     let rect = canvas.getBoundingClientRect();
-    _mouse_pos[_x] = 0 | (evt.clientX - rect.left);
-    _mouse_pos[_y] = 0 | (evt.clientY - rect.top);
+    _mouse_pos.x = 0 | (evt.clientX - rect.left);
+    _mouse_pos.y = 0 | (evt.clientY - rect.top);
 }
 
 function on_mouse_down(evt) {
@@ -44,11 +44,11 @@ function on_touch_end(evt) {
 /* -------------------------------------------------------------------------- */
 
 function GetCursorX() {
-    return 0 | _mouse_pos[_x];
+    return 0 | _mouse_pos.x;
 }
 
 function GetCursorY() {
-    return 0 | _mouse_pos[_y];
+    return 0 | _mouse_pos.y;
 }
 
 function GetFontSize() {
@@ -99,7 +99,7 @@ function DrawText_PixiText(text, x, y, color) {
     if (!o) {
         o = new PIXI.Text(
             text,
-            {fontFamily : 'Arial', fontSize: 14, fill : int_color}
+            { fontFamily: 'Arial', fontSize: 14, fill: int_color }
         );
         _pixi_text_objects[key] = o;
     }
@@ -117,18 +117,18 @@ function DrawText_Original(text, x, y, color) { // 10-12 ms ff
 }
 
 function DrawBoxInternal(rect, color, soft) {
-    
-    const x = rect[_x];
-    const y = rect[_y];
-    const width = rect[_w];
-    const height = rect[_h];
+
+    const x = rect.x;
+    const y = rect.y;
+    const width = rect.w;
+    const height = rect.h;
 
     //if (color) {
-        const rgb = color[_r] << 16 | color[_g] << 8 | color[_b] << 0;
-        context.beginFill(rgb); //, color.a/255);
-        //graphics.beginFill(0xFF3300);
-        //graphics.lineStyle(4, 0xffd900, 1);
-    
+    const rgb = color[_r] << 16 | color[_g] << 8 | color[_b] << 0;
+    context.beginFill(rgb); //, color.a/255);
+    //graphics.beginFill(0xFF3300);
+    //graphics.lineStyle(4, 0xffd900, 1);
+
     //}
 
     /*
@@ -136,7 +136,7 @@ function DrawBoxInternal(rect, color, soft) {
     context.drawImage(
         bmfont_mana16_img,
         2, 2, 1, 1,
-        rect[_x], rect[_y], rect[_w], rect[_h],       
+        rect.x, rect.y, rect.w, rect.h,       
     );*/
 
     if (soft) {
@@ -229,18 +229,18 @@ function initialize(canvasId) {
 
     context = new PIXI.Graphics();
 
-    context.fillRect = function(x,y,w,h) {
+    context.fillRect = function (x, y, w, h) {
         context.lineStyle(0, 0xffffff, 1, 0);
-        context.drawRect(x,y,w,h);
+        context.drawRect(x, y, w, h);
     }
-    context.save = function() {};
-    context.restore = function() {};
-    context.clip = function() {};
-    context.rect = function() {};
-    context.translate = function() {};
-    context.stroke = function() {};
-    context.beginPath = function() {};
-    context.setLineDash = function() {};
+    context.save = function () { };
+    context.restore = function () { };
+    context.clip = function () { };
+    context.rect = function () { };
+    context.translate = function () { };
+    context.stroke = function () { };
+    context.beginPath = function () { };
+    context.setLineDash = function () { };
 
     //pixi_app.stage.addChild(graphics);
 
@@ -248,8 +248,8 @@ function initialize(canvasId) {
     // touch move? (NO!)
 
     canvas.addEventListener('mousedown', on_mouse_down, false);
-    canvas.addEventListener('touchstart', on_touch_start, {capture: false, passive: true});
-        
+    canvas.addEventListener('touchstart', on_touch_start, { capture: false, passive: true });
+
     canvas.addEventListener('mouseup', on_mouse_up, false);
     canvas.addEventListener('touchend', on_touch_end, false);
 }
@@ -270,15 +270,15 @@ function GetCanvas() {
     return canvas;
 }
 
-function UpdateSize() {    
+function UpdateSize() {
     let w = window.innerWidth - app.canvas_size_hack;
     let h = window.innerHeight - app.canvas_size_hack;
-    pixi_app.renderer.resize(w,h);
+    pixi_app.renderer.resize(w, h);
 }
 
 function FrameClear() {
     let stage = pixi_app.stage;
-    for (var i = stage.children.length - 1; i >= 0; i--) {	stage.removeChild(stage.children[i]);};
+    for (var i = stage.children.length - 1; i >= 0; i--) { stage.removeChild(stage.children[i]); };
     context.clear();
     stage.addChild(context);
 }

@@ -1,3 +1,7 @@
+// C:\Users\Eowilson\Downloads\mutrix
+// C:\Users\Eowilson\Downloads\love-0.8.0-win-x64
+// c:\mutrix.png
+
 [links]
 https://www.sitepoint.com/es6-babel-webpack/
 https://github.com/babel/awesome-babel

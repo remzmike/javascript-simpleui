@@ -40,6 +40,7 @@
     "webpack-dev-server": "^3.1.9"
   },
   "dependencies": {
-    "babel-plugin-loop-optimizer": "^1.4.1"
+    "babel-plugin-loop-optimizer": "^1.4.1",
+    "eslint": "^5.11.1"
   }
 }

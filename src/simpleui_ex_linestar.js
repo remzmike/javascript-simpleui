@@ -1,5 +1,14 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
+import * as consts from './simpleui_consts.js';
+
+const _none = consts._none;
+const _vertical = consts._vertical;
+const _horizontal = consts._horizontal;
+
+const PointP = ui.PointP;
+const RectangleP = ui.RectangleP;
+const ColorP = ui.ColorP;
 
 const ends = [];
 
@@ -30,8 +39,7 @@ AND, still use push_/pop_ uidraw api instead of sets
 */
 function draw_star(uiid, segments, joints, webs, rings) {
 
-    //ends.length = 0;
-    const ends = []; // todo: pick one of these two techniques ^
+    ends.length = 0;
 
     let incr = Math.PI * 2 / segments;
 
@@ -43,7 +51,7 @@ function draw_star(uiid, segments, joints, webs, rings) {
 
     const peek = ui.layout_peek();        
     uidraw.begin_path();
-    const stroke_color = make_css_color(Color(200, 220, 200, 127));
+    const stroke_color = make_css_color(ColorP(200, 220, 200, 127));
     uidraw.push_strokestyle(stroke_color);
 
     // webs
@@ -51,17 +59,17 @@ function draw_star(uiid, segments, joints, webs, rings) {
     if (webs > 0) {
         for (let i0 = 0; i0 < ends.length; i0++) {
             let pt0 = ends[i0];
-            let x0 = pt0[_x];
-            let y0 = pt0[_y];
+            let x0 = pt0.x;
+            let y0 = pt0.y;
             // begin
             let i1 = (i0 + 1) % ends.length;
             let pt1 = ends[i1];
-            let x1 = pt1[_x];
-            let y1 = pt1[_y];
+            let x1 = pt1.x;
+            let y1 = pt1.y;
             for (let j = 0; j < webs; j++) {
                 let p0 = (j + 1) / joints;
-                uidraw.move_to(peek[_x] + x0 * p0, peek[_y] + y0 * p0);
-                uidraw.line_to(peek[_x] + x1 * p0, peek[_y] + y1 * p0);
+                uidraw.move_to(peek.x + x0 * p0, peek.y + y0 * p0);
+                uidraw.line_to(peek.x + x1 * p0, peek.y + y1 * p0);
                 //console.log(x0*p0, y0*p0, x1*p0, y1*p0);
             }
         }
@@ -99,18 +107,18 @@ function draw_star(uiid, segments, joints, webs, rings) {
     // star
     for (let i0 = 0; i0 < ends.length; i0++) {
         let pt0 = ends[i0];
-        let x0 = pt0[_x];
-        let y0 = pt0[_y];
+        let x0 = pt0.x;
+        let y0 = pt0.y;
         // begin
         let i1 = (i0 + 1) % ends.length;
         let pt1 = ends[i1];
-        let x1 = pt1[_x];
-        let y1 = pt1[_y];
+        let x1 = pt1.x;
+        let y1 = pt1.y;
         for (let j = 0; j < joints; j++) {
             let p0 = (j + 1) / joints;
             let p1 = 1 - p0;
-            uidraw.move_to(peek[_x] + x0 * p0, peek[_y] + y0 * p0);
-            uidraw.line_to(peek[_x] + x1 * p1, peek[_y] + y1 * p1);
+            uidraw.move_to(peek.x + x0 * p0, peek.y + y0 * p0);
+            uidraw.line_to(peek.x + x1 * p1, peek.y + y1 * p1);
         }
     }
 
@@ -126,11 +134,11 @@ function do_linestar_edit(uiid, segments, joints, webs) {
     const rings = 19;
 
     const vertical = ui.layout_push(_vertical);
-    const bg_rect = ui.layout_translated(Rectangle(0, 0, 400, 400));
+    const bg_rect = ui.layout_translated(RectangleP(0, 0, 400, 400));
     uidraw.rectangle_soft(bg_rect, uidraw.normal_back);
     ui.layout_increment2(400, 400);
 
-    ui.layout_push(_none, 0, vertical[_x] + 200, vertical[_y] - 200);
+    ui.layout_push(_none, 0, vertical.x + 200, vertical.y - 200);
     draw_star(
         uiid,
         segments,
@@ -141,19 +149,19 @@ function do_linestar_edit(uiid, segments, joints, webs) {
     ui.layout_pop();
 
     let changed = 0 | false;
-    const rect = Rectangle(0, 0, 200, 20);
+    const rect = RectangleP(0, 0, 200, 20);
 
-    _ = do_slider2d(uiid + '-slider2d', Rectangle(0, 0, 400, 200), 3, 20, Point(segments, joints));
-    if (_[_changed]) {
-        segments = _[_x1];
-        joints = _[_y1];
+    _ = do_slider2d(uiid + '-slider2d', RectangleP(0, 0, 400, 200), 3, 20, PointP(segments, joints));
+    if (_.changed) {
+        segments = _.x1;
+        joints = _.y1;
         changed = 0 | true;
     }
 
     ui.layout_push(_horizontal);
     _ = ui.slider(uiid + '-slider-segments', rect, 0, 80, segments, '');
-    if (_[_changed]) {
-        segments = _[_value];
+    if (_.changed) {
+        segments = _.value;
         changed = 0 | true;
     }
 
@@ -162,8 +170,8 @@ function do_linestar_edit(uiid, segments, joints, webs) {
 
     ui.layout_push(_horizontal);
     _ = ui.slider(uiid + '-slider-joints', rect, 0, 80, joints, '');
-    if (_[_changed]) {
-        joints = _[_value];
+    if (_.changed) {
+        joints = _.value;
         changed = 0 | true;
     }
     ui.label('joints', rect);
@@ -171,8 +179,8 @@ function do_linestar_edit(uiid, segments, joints, webs) {
 
     ui.layout_push(_horizontal);
     _ = ui.slider(uiid + '-slider-webs', rect, 0, 80, webs, '');
-    if (_[_changed]) {
-        webs = _[_value];
+    if (_.changed) {
+        webs = _.value;
         changed = 0 | true;
     }
 
@@ -181,12 +189,22 @@ function do_linestar_edit(uiid, segments, joints, webs) {
     
     _ = ui.layout_pop(); // vertical
 
-    return [
+    let state = ui.get_state(uiid);
+    if (!state) {
+        state = ui.set_state(uiid, {changed: 0 | false, segments: 0 | segments, joints: 0 | joints, webs: 0 | webs});
+    }    
+    state.changed = 0 | changed;
+    state.segments = 0 | segments;
+    state.joints = 0 | joints;
+    state.webs = 0 | webs;
+    return state;
+
+    /*return [
         0 | changed,
         0 | segments,
         0 | joints,
         0 | webs
-    ];
+    ];*/
 }
 
 export {

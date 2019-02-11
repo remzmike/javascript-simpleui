@@ -43,7 +43,6 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
     <!-- -->
     <script src="./dist/simpleui-bundle.js" charset="utf-8"></script>
     <!-- -->
-    <script src="app-consts.js"></script>
     <script src="app-util.js"></script> 
         
     <script>
@@ -51,8 +50,11 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
         const ui = m_simpleui;
         const uidraw = m_simpleui_drawing;
         const Rectangle = ui.Rectangle;
+        const RectangleP = ui.RectangleP;
         const Point = ui.Point;
+        const PointP = ui.PointP;
         const Color = ui.Color;
+        const ColorP = ui.ColorP;
         const make_css_color = ui.make_css_color;
 
         ui.initialize({ driver: 'html5-canvas', canvasId: 'myCanvas' });
@@ -60,6 +62,14 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
         const canvas = ui.driver.GetCanvas();
         const GetCursorX = ui.driver.GetCursorX;
         const GetCursorY = ui.driver.GetCursorY;
+                
+        let initial_desktop = 'audio'; // nolive: 'audio'
+        const qs = window.location.search;
+        if (qs == '?audio') {
+            initial_desktop = 'audio';
+        } else if (qs == '?demo') {
+            initial_desktop = 'demo';
+        }
 
         const app = {
             main_loop_time: 0,
@@ -68,13 +78,10 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             canvas_size_hack: 20,
             panel_layout_padding: 2,
             window_active: 0 | true,
-            desktop: 'audio', // nolive: 'demo'
+            desktop: initial_desktop, 
             desktops: ['demo', 'audio']
         };
     </script>
-
-    <script src="app-ui-demo.js"></script>
-    <script src="app-ui-audio.js"></script>
 
     <script>
         function do_ui() {
@@ -84,9 +91,9 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
             ui.label('This is not html. It is an image updated by javascript.', Rectangle(220, 14, 400, 0));
 
             if (app.desktop == 'demo') {
-                do_ui_demo();
+                do_app_demo();
             } else if (app.desktop == 'audio') {
-                do_ui_audio();
+                do_app_audio();
             }
         }
 
