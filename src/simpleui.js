@@ -82,11 +82,10 @@ const _layout_pool = new FramePool(LayoutDefault, 2000);
 const uistate = {
     hotspot_rects: _hotspot_rects,
     hotspot_ids: _hotspot_ids,
-    hotspot_count: 0,
-    mouselocation: Point(0, 0),
+    hotspot_count: 0,    
     item_hovered: null,
     item_held: null,
-    // frame items / 'events'
+    // frame items & 'events'
     mouse_went_up: false,
     item_went_down: false,
     item_went_downup: false,
@@ -94,7 +93,12 @@ const uistate = {
     item_went_downup_middle: false,
     item_went_down_right: false,
     item_went_downup_right: false,    
-    collapsed_panel_index: 0,
+    collapsed_panel_index: 0,        
+    mousepressed_x: null, // i dont want to use driver.GetCursor* in app code since it might give data one frame later than the code calling it expects
+    mousepressed_y: null, // i wrote the above line before remembering mouselocation was already on state, but these are still useful for certain stuff (which i havent written yet) (since you done have to check mouse_went_down (which doesnt exist) + mouse_location)
+    mousereleased_x: null,
+    mousereleased_y: null,
+    mouselocation: Point(0, 0),
 };
 
 let _g_handle_delta_x = 0 | 0;
@@ -289,22 +293,13 @@ function set_state(uiid, state) {
     return state;
 }
 
-// this would never work because it creates o param on every call even when state already exists
-/** get state, sets default if null */
-/*function get_set_state(uiid, o) {
-    let state = get_state(uiid);
-    if (!state) {
-        state = set_state(uiid, o);
-    }    
-    return state;
-}*/
-
 // this way avoids deopt
 function rectangle_contains(x1, y1, w, h, pt_x, pt_y) {
     const x2 = 0 | (x1 + w);
     const y2 = 0 | (y1 + h);
     //const b = 0 | (0 | (pt_x >= x1) && 0 | (pt_x <= x2) && 0 | (pt_y >= y1) && 0 | (pt_y <= y2));
-    const b = 0 | (0 | (pt_x >= x1) && 0 | (pt_x < x2) && 0 | (pt_y >= y1) && 0 | (pt_y < y2)); // 0.4.3 second point compares with < not <=
+    // 0.4.3 second point compares with < not <=
+    const b = 0 | (0 | (pt_x >= x1) && 0 | (pt_x < x2) && 0 | (pt_y >= y1) && 0 | (pt_y < y2));
     return b;
 }
 
@@ -460,39 +455,43 @@ function layout_translated(local_rect) {
 }
 
 function on_mousepressed(x, y, button) {    
+    uistate.mousepressed_x = x;
+    uistate.mousepressed_y = y;
     if (button == _left) {
         uistate.item_went_down = uistate.item_hovered;
         uistate.item_held = uistate.item_hovered;
-        console.log('[item_went_down]', uistate.item_hovered);
+        console.log('[item_went_down]', uistate.item_hovered, x, y);
     } else if (button == _middle) {
         uistate.item_went_down_middle = uistate.item_hovered;
         uistate.item_held_middle = uistate.item_hovered;
-        console.log('[item_went_down_middle]', uistate.item_hovered);
+        console.log('[item_went_down_middle]', uistate.item_hovered, x, y);
     } else if (button == _right) {
         uistate.item_went_down_right = uistate.item_hovered;
         uistate.item_held_right = uistate.item_hovered;
-        console.log('[item_went_down_right]', uistate.item_hovered);
+        console.log('[item_went_down_right]', uistate.item_hovered, x, y);
     }
 }
 
 function on_mousereleased(x, y, button) {
+    uistate.mousereleased_x = x;
+    uistate.mousereleased_y = y;
     if (button == _left) {
         if (uistate.item_held == uistate.item_hovered) {
             uistate.item_went_downup = uistate.item_hovered;
-            console.log('[item went downup]', uistate.item_hovered);
+            console.log('[item went downup]', uistate.item_hovered, x, y);
         }
         uistate.mouse_went_up = 0 | true; // only left click does this
         uistate.item_held = null;
     } else if (button == _middle) {
         if (uistate.item_held_middle == uistate.item_hovered) {
             uistate.item_went_downup_middle = uistate.item_hovered;
-            console.log('[item went downup middle]', uistate.item_hovered);
+            console.log('[item went downup middle]', uistate.item_hovered, x, y);
         }
         uistate.item_held_middle = null;
     } else if (button == _right) {
         if (uistate.item_held_right == uistate.item_hovered) {
             uistate.item_went_downup_right = uistate.item_hovered;
-            console.log('[item went downup right]', uistate.item_hovered);
+            console.log('[item went downup right]', uistate.item_hovered, x, y);
         }
         uistate.item_held_right = null;
     }
@@ -502,13 +501,14 @@ function run(fn) {
 
     console.assert(_layout_pool.index === 0);
 
+    // mouselocation set was here in 0.4.3, moving it after fn() fixes latency issues (trix grid edge drag issue)
+
+    fn();
+    console.assert(_layout_pool.index === 0);
+
     // updates
     uistate.mouselocation.x = 0 | driver.GetCursorX();
     uistate.mouselocation.y = 0 | driver.GetCursorY();
-
-    fn();
-
-    console.assert(_layout_pool.index === 0);
 
     //{ item_hovered logic
     uistate.item_hovered = null;
@@ -591,6 +591,11 @@ function run(fn) {
     uistate.item_went_downup_middle = 0 | false;
     uistate.item_went_down_right = 0 | false;
     uistate.item_went_downup_right = 0 | false;
+    //
+    uistate.mousepressed_x = null;
+    uistate.mousepressed_y = null;
+    uistate.mousereleased_x = null;
+    uistate.mousereleased_y = null;
     // this probably won't stay here
     uistate.collapsed_panel_index = 0 | 0;
 }
