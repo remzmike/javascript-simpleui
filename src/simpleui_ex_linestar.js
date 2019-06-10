@@ -1,6 +1,7 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 import * as consts from './simpleui_consts.js';
+import { do_slider2d } from './simpleui_ex_slider2d.js';
 
 const _none = consts._none;
 const _vertical = consts._vertical;
@@ -51,7 +52,7 @@ function draw_star(uiid, segments, joints, webs, rings) {
 
     const peek = ui.layout_peek();        
     uidraw.begin_path();
-    const stroke_color = make_css_color(ColorP(200, 220, 200, 127));
+    const stroke_color = ui.make_css_color(ColorP(200, 220, 200, 127));
     uidraw.push_strokestyle(stroke_color);
 
     // webs
@@ -144,7 +145,7 @@ function do_linestar_edit(uiid, segments, joints, webs) {
         segments,
         joints,
         webs,
-        rings,
+        rings
     );
     ui.layout_pop();
 
@@ -187,7 +188,7 @@ function do_linestar_edit(uiid, segments, joints, webs) {
     ui.label('webs', rect);
     ui.layout_pop();
     
-    _ = ui.layout_pop(); // vertical
+    ui.layout_pop(); // vertical
 
     let state = ui.get_state(uiid);
     if (!state) {

@@ -1,6 +1,11 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
 import * as consts from './simpleui_consts.js';
+import { do_panel_begin, do_panel_end } from './simpleui_ex_panel.js';
+import { do_gradient_stroke_edit } from './simpleui_ex_gradient.js';
+import { do_gridfont } from './simpleui_ex_gridfont.js';
+import { do_scroll_begin, do_scroll_end, do_scroll_item_begin, do_scroll_item_end } from './simpleui_ex_scroll.js';
+import { do_linestar_edit } from './simpleui_ex_linestar.js';
 
 const _r = consts._r;
 const _g = consts._g;
@@ -14,9 +19,36 @@ const Color = ui.Color;
 const ColorP = ui.ColorP;
 const Point = ui.Point;
 const PointP = ui.PointP;
-const Rectangle = ui.Rectangle;
+//const Rectangle = ui.Rectangle;
 const RectangleP = ui.RectangleP;
 const make_css_color = ui.make_css_color;
+
+function init_array(size, init_val) {
+    let a = [];
+    for (let i = 0; i < size; i++) {
+        a[i] = init_val;
+    }
+    return a;
+}
+
+function sum(a) {
+    let result = 0|0;
+    for (let i = 0; i < a.length; i++) {
+        let v = a[i];
+        result = result + v;
+    }
+    return result;
+}
+console.assert(sum([1, 2, 3]) == 6);
+
+function randomize_color(color) {
+    let a = [0, 1, 2];
+    for (let i = 0; i < a.length; i++) {
+        let k = a[i];
+        let v = 50 + Math.round(Math.random() * 150);
+        color[k] = v;
+    }
+}
 
 function do_color(uiid, color, label) {
     let _;
@@ -60,7 +92,7 @@ function do_color(uiid, color, label) {
             // this increment moves the swatch down so it aligns with the sliders, not the label                    
             ui.layout_increment2(0, h);
 
-            const swatch_dim = h * 3 + pad * 2
+            const swatch_dim = h * 3 + pad * 2;
             const swatch_rect = RectangleP(0, 0, swatch_dim, swatch_dim);
             //ui.rectangle(swatch_rect, color);
             uidraw.rectangle_soft(ui.layout_translated(swatch_rect), color);
@@ -94,7 +126,7 @@ function do_ms_meter(uiid, a_time, high_value) {
         state = ui.set_state(uiid, {
             'times': init_array(30, 0)
         });
-    };
+    }
     let times = state.times;
     times.push(a_time);
     times.shift();
@@ -120,7 +152,7 @@ function do_ms_graph(uiid, a_time, graph_height) {
         state = ui.set_state(uiid, {
             'times': init_array(30, 0)
         });
-    };
+    }
     let times = state.times;
     times.push(a_time);
     times.shift();
@@ -198,8 +230,8 @@ function do_sidepanel() {
             if (ui.state.item_held) {
                 cursor_size = 0 | 8;
             }
-            let radar_cursor_pos_x = 0 | (((GetCursorX() / canvas.width) * w) - (cursor_size / 2));
-            let radar_cursor_pos_y = 0 | (((GetCursorY() / canvas.height) * w / aspect) - (cursor_size / 2));
+            let radar_cursor_pos_x = 0 | (((ui.driver.GetCursorX() / canvas.width) * w) - (cursor_size / 2));
+            let radar_cursor_pos_y = 0 | (((ui.driver.GetCursorY() / canvas.height) * w / aspect) - (cursor_size / 2));
 
             const layout = ui.layout_peek();
             ui.layout_push(_none, layout.padding, layout.x, layout.y - h - pad);
@@ -266,8 +298,8 @@ function do_sidepanel() {
             if (memory) {
                 let mem1 = memory.usedJSHeapSize / (1024 * 1024);
                 let mem2 = memory.jsHeapSizeLimit / (1024 * 1024);
-                sidelabel('mem1: ' + round(mem1) + 'MB');
-                sidelabel('mem2: ' + round(mem2) + 'MB');
+                sidelabel('mem1: ' + ui.round(mem1) + 'MB');
+                sidelabel('mem2: ' + ui.round(mem2) + 'MB');
             }
         }
 
@@ -275,10 +307,10 @@ function do_sidepanel() {
         {
             // editor help for function arguments needs some hjalp
             _ = ui.button('button-rtc', 'reset text cache', RectangleP(0, 0, 150, 24));
-            if (_.clicked) _drawtext_cache = {};
+            if (_.clicked) ui.driver.ResetDrawTextCache();
 
-            _ = ui.button('button-rbc', 'reset box cache', RectangleP(0, 0, 150, 24));
-            if (_.clicked) _drawbox_cache = {};
+            //_ = ui.button('button-rbc', 'reset box cache', RectangleP(0, 0, 150, 24));
+            //if (_.clicked) _drawbox_cache = {};
 
             ui.layout_push(_horizontal);
             {
@@ -341,14 +373,14 @@ function do_color_panel(uiid, first_x, first_y, first_visible, first_expanded) {
     let panel = do_panel_begin(uiid, first_x, first_y, first_visible, first_expanded);
     if (panel.visible && panel.expanded) {
         // row 1
-        ui.layout_push(_horizontal)
+        ui.layout_push(_horizontal);
         {
             do_color_row(uidraw, ['accent', 'panel_color', 'bg_color']);
         }
         ui.layout_pop();
 
         // row 2
-        ui.layout_push(_horizontal)
+        ui.layout_push(_horizontal);
         do_color_row(uidraw, ['normal_back', 'normal_face', 'activating_face']);
         ui.layout_pop();
 
@@ -371,11 +403,11 @@ function do_gradient_panel(uiid, first_x, first_y, first_visible, first_expanded
         ui.layout_push(_horizontal);
         {
 
-            const min_x = -50;
-            const max_x = 150;
+            //const min_x = -50;
+            //const max_x = 150;
             const min_y = -50;
             const max_y = 150;
-            const dim_w = max_x - min_x;
+            //const dim_w = max_x - min_x;
             const dim_h = max_y - min_y;
 
             _ = do_gradient_stroke_edit(uiid + 'stroke-edit', -50, 150, uidraw.box_gradient.x1, uidraw.box_gradient.y1, uidraw.box_gradient.x2, uidraw.box_gradient.y2);            
@@ -434,7 +466,7 @@ function do_gradient_panel(uiid, first_x, first_y, first_visible, first_expanded
         ui.layout_pop();
 
         if (changed && ui.driver.config.has_drawbox_gradient) {                    
-            m_simpleui.config.drawbox_gradient = ui.driver.CreateDrawboxGradient(
+            ui.config.drawbox_gradient = ui.driver.CreateDrawboxGradient(
                 context,
                 uidraw.box_gradient.x1, uidraw.box_gradient.y1,
                 uidraw.box_gradient.x2, uidraw.box_gradient.y2,
@@ -455,7 +487,7 @@ function do_gridfont_panel(uiid, first_x, first_y, first_visible, first_expanded
             'run': 0 | true,
             'reset': 0 | false
         });
-    };
+    }
 
     // cannot shared panel uiid here since do_gridfont_panel has state (above) (keyed by uiid)
     let panel_uiid = uiid + 'i';
@@ -660,7 +692,7 @@ let _bg_init = 0 | false;
 
 function do_background_anim() {
     if (!_bg_init) {
-        for (var i = 1; i < 100; i++) {
+        for (let i = 1; i < 100; i++) {
             const randx = 0 | (Math.random() * canvas.width * 3) - canvas.width;
             const randy = 0 | (Math.random() * canvas.height * 3) - canvas.height;
             anim_items.push(PointP(randx, randy));
@@ -671,7 +703,7 @@ function do_background_anim() {
 
     uidraw.begin_path();
     uidraw.move_to(0,0);
-    for (var i = 0; i < anim_items.length; i++) {
+    for (let i = 0; i < anim_items.length; i++) {
         const item = anim_items[i];
         const vec = anim_vectors[i];
 
@@ -702,12 +734,12 @@ function do_background_anim() {
 
     uidraw.push_linewidth(1);
     uidraw.push_strokestyle(anim_color1);
-    uidraw.stroke()
+    uidraw.stroke();
     uidraw.pop_linewidth();
     uidraw.pop_strokestyle();
     // todo: uidraw.custom_line2(x1, y1, x2, y2, width, style)
 
-    const dash_scale = 20
+    const dash_scale = 20;
     uidraw.push_linedash([1 * dash_scale, 3 * dash_scale, 3 * dash_scale, 5 * dash_scale, 5 * dash_scale, 8 * dash_scale, 8 * dash_scale, 13 * dash_scale]);
     uidraw.push_linewidth(3);
     uidraw.push_strokestyle(anim_color2);
@@ -719,7 +751,7 @@ function do_background_anim() {
 }
 
 function do_app_demo() {
-    let expanded = !is_touch_device();
+    let expanded = !ui.driver.IsTouchDevice();
 
     const row_x0 = 222;
     const row_y0 = 47;

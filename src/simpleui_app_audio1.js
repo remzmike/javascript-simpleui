@@ -1338,7 +1338,7 @@ function do_app_audio() {
     const row_x0 = 222;
     const row_y0 = 47;
 
-    const expanded = !is_touch_device();
+    const expanded = !ui.driver.IsTouchDevice();
 
     if (_tone_panel.context) {
         do_trix_panel('trix panel', row_x0, row_y0, true, expanded);

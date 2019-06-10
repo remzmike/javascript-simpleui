@@ -1,13 +1,7 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
-import * as consts from './simpleui_consts.js';
 
 const Color = ui.Color;
-
-const _complete = consts._complete;
-const _reset_complete = consts._reset_complete;
-const _segment = consts._segment;
-const _partial = consts._partial;
 
 const _gridfonts = {
     'hint-four': {

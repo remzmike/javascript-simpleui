@@ -45,7 +45,6 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
     <script src="./dist/simpleui-dist.js" charset="utf-8"></script>
     <!-- -->
     <script src="app-consts.js"></script>
-    <script src="app-utils.js"></script>
     <script>        
         // aliases
         const ui = m_simpleui;
@@ -322,10 +321,10 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
                 {
                     // editor help for function arguments needs some revamping
                     _ = ui.button('button-rtc', 'reset text cache', Rectangle(0, 0, 150, 24));
-                    if (_.clicked) _drawtext_cache = {};
+                    if (_.clicked) ui.driver.ResetDrawTextCache();
 
-                    _ = ui.button('button-rbc', 'reset box cache', Rectangle(0, 0, 150, 24));
-                    if (_.clicked) _drawbox_cache = {};
+                    //_ = ui.button('button-rbc', 'reset box cache', Rectangle(0, 0, 150, 24));
+                    //if (_.clicked) _drawbox_cache = {};
 
                     ui.layout_push(_horizontal);
                     {
@@ -778,7 +777,7 @@ i wrote this in c# first, then ported it to lua, then ported to this javascript
 
             ui.label('This is not html. It is an image updated by javascript.', Rectangle(220, 14, 400, 0));
 
-            const expanded = !is_touch_device();
+            const expanded = !ui.driver.IsTouchDevice();
 
             const row_x0 = 240;
             const row_y0 = 90;

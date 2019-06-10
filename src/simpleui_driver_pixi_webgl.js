@@ -1,6 +1,13 @@
+import * as ui from './simpleui.js';
+import * as consts from './simpleui_consts.js';
 import { parseBMFontAscii } from './bmfont.js';
 import bmfont_definition_mana16 from './bmfont_definition_mana16.js';
 import images_mana16 from './images/mana16.png';
+
+const _r = consts._r;
+const _g = consts._g;
+const _b = consts._b;
+const _left = consts._left;
 
 const bmfont_mana16 = parseBMFontAscii(bmfont_definition_mana16);
 const bmfont_mana16_img = new Image(512, 81);
@@ -63,9 +70,9 @@ function DrawText_Stroke(text, x, y, color) {
     let font = fonts[0];
     context.font = font.size + "px '" + font.name + "'";
     if (color == null) {
-        color = m_simpleui.Color(255, 255, 255, 255);
+        color = ui.Color(255, 255, 255, 255);
     }
-    context.fillStyle = make_css_color(color);
+    context.fillStyle = ui.make_css_color(color);
     let yoffset = fontsize - 2;
     context.fillText(text, x, y + yoffset);
 }
@@ -109,7 +116,7 @@ function DrawText_PixiText(text, x, y, color) {
 }
 
 function DrawText_Original(text, x, y, color) { // 10-12 ms ff
-    if (m_simpleui.config.drawtext_bitmap) {
+    if (ui.config.drawtext_bitmap) {
         DrawText_Bitmap(text, x, y, color);
     } else {
         DrawText_Stroke(text, x, y, color);
@@ -160,7 +167,7 @@ function DrawBoxInternal(rect, color, soft) {
         context.fillRect(x, y, width, height);
     }
 
-    let use_gradient = m_simpleui.config.drawbox_gradient_enable;
+    let use_gradient = ui.config.drawbox_gradient_enable;
 
     if (use_gradient) {
         let is_size_excluded = width > 200 || height > 200; // || (width<20 && height<20);
@@ -171,7 +178,7 @@ function DrawBoxInternal(rect, color, soft) {
     const disabled_for_gl_port = true;
     if (!disabled_for_gl_port && use_gradient) {
         context.translate(x, y); // for gradient
-        context.fillStyle = m_simpleui.config.drawbox_gradient;
+        context.fillStyle = ui.config.drawbox_gradient;
         context.fillRect(1, 1, width - 2, height - 2);
         context.translate(-x, -y); // this appears to be faster than wrapping save/restore :->
     }
@@ -183,7 +190,7 @@ function DrawBox(rect, color) {
 }
 
 function DrawRoundedBox(rect, color) {
-    return DrawBoxInternal(rect, color, soft);
+    return DrawBoxInternal(rect, color, 0 | true);
 }
 
 const DrawCircle = DrawBox;
@@ -232,7 +239,7 @@ function initialize(canvasId) {
     context.fillRect = function (x, y, w, h) {
         context.lineStyle(0, 0xffffff, 1, 0);
         context.drawRect(x, y, w, h);
-    }
+    };
     context.save = function () { };
     context.restore = function () { };
     context.clip = function () { };
@@ -278,13 +285,18 @@ function UpdateSize() {
 
 function FrameClear() {
     let stage = pixi_app.stage;
-    for (var i = stage.children.length - 1; i >= 0; i--) { stage.removeChild(stage.children[i]); };
+    for (var i = stage.children.length - 1; i >= 0; i--) { stage.removeChild(stage.children[i]); }
     context.clear();
     stage.addChild(context);
 }
 
 const config = {
     has_drawbox_gradient: 0 | false,
+};
+
+// https://stackoverflow.com/a/36673184
+function IsTouchDevice() {
+    return (navigator.maxTouchPoints || 'ontouchstart' in document.documentElement);
 }
 
 export {
@@ -305,4 +317,5 @@ export {
     UpdateSize,
     //CreateDrawboxGradient,
     FrameClear,
-}
+    IsTouchDevice,
+};

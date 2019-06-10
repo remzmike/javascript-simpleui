@@ -35,7 +35,7 @@ const config = {
 };
 
 function get_version() {
-    return '0.4.3';
+    return '0.4.4';
 }
 
 // returned by driver's initialize during this module's initialize
@@ -210,7 +210,7 @@ function Rectangle(x, y, w, h) {
         y: 0 | y,
         w: 0 | w,
         h: 0 | h
-    }
+    };
 }
 
 function RectangleDefault() {
@@ -332,16 +332,16 @@ function layout_push(mode, padding, x, y) {
     if (prev != null) {
         //print('inheriting from prev');
         // inherit x and y
-        if (x == null || x == undefined) {
+        if (x == null) {
             //print('inherit layout x', prev.x);
             x = 0 | prev.x;
         }
-        if (y == null || y == undefined) {
+        if (y == null) {
             //print('inherit layout y', prev.y);
             y = 0 | prev.y;
         }
         // inherit padding
-        if (padding == null || padding == undefined) {
+        if (padding == null) {
             padding = 0 | prev.padding;
         }
     }
@@ -1043,7 +1043,7 @@ function is_browser_gecko() {
 }
 
 export {
-    Hotspot,
+    //Hotspot,
     Color, ColorP,
     Point, PointP,
     Rectangle, RectangleP,

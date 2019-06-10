@@ -1708,7 +1708,7 @@ function do_app_audio2() {
     const row_y0 = oy;
     let _;
 
-    const expanded = !is_touch_device();
+    const expanded = !ui.driver.IsTouchDevice();
 
     if (_trix_panel.initialized) {
         

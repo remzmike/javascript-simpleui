@@ -1,5 +1,6 @@
 import * as ui from './simpleui.js';
 import * as uidraw from './simpleui_drawing.js';
+import * as consts from './simpleui_consts.js';
 import { parseBMFontAscii } from './bmfont.js';
 import bmfont_definition_mana16 from './bmfont_definition_mana16.js';
 import images_mana16 from './images/mana16.png';
@@ -7,6 +8,11 @@ import images_mana16 from './images/mana16.png';
 const bmfont_mana16 = parseBMFontAscii(bmfont_definition_mana16);
 const bmfont_mana16_img = new Image(512, 81);
 bmfont_mana16_img.src = images_mana16;
+
+const _r = consts._r;
+const _g = consts._g;
+const _b = consts._b;
+const _a = consts._a;
 
 // these are set in initialize
 let context;
@@ -29,11 +35,11 @@ function on_mouse_up(evt) {
 
 // meh
 function on_touch_start(evt) {
-    ui.on_mousepressed(evt.clientX, evt.clientY, _left);
+    ui.on_mousepressed(evt.clientX, evt.clientY, consts._left);
 }
 
 function on_touch_end(evt) {
-    ui.on_mousereleased(evt.clientX, evt.clientY, _left);
+    ui.on_mousereleased(evt.clientX, evt.clientY, consts._left);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -53,7 +59,7 @@ function GetFontSize() {
 function DrawText_Stroke(text, x, y, color) {
     let fontsize = GetFontSize();
     if (color == null) { // todo: lose this kind of overloading for perf reasons
-        color = m_simpleui.Color(255, 255, 255, 255);
+        color = ui.Color(255, 255, 255, 255);
     }
     context.font = "16px Arial";
     context.fillStyle = ui.make_css_color(color);
@@ -444,13 +450,13 @@ function CreateDrawboxGradient(context, x1, y1, x2, y2, input_color1, input_colo
 
     console.assert(context);
     let grd = context.createLinearGradient(x1, y1, x2, y2);
-    grd.addColorStop(0.0, make_css_color(color1));
-    grd.addColorStop(1.0, make_css_color(color2));
+    grd.addColorStop(0.0, ui.make_css_color(color1));
+    grd.addColorStop(1.0, ui.make_css_color(color2));
     return grd;
 }
 
 function FrameClear() {
-    uidraw.push_fillstyle(make_css_color(uidraw.bg_color));
+    uidraw.push_fillstyle(ui.make_css_color(uidraw.bg_color));
     context.fillRect(0, 0, canvas.width, canvas.height);
     uidraw.pop_fillstyle();
     /*context.beginPath();
@@ -505,6 +511,15 @@ function EndClip() {
 
 const config = {
     has_drawbox_gradient: 0 | true,
+};
+
+function ResetDrawTextCache() {
+    _drawtext_cache = {};
+}
+
+// https://stackoverflow.com/a/36673184
+function IsTouchDevice() {
+    return (navigator.maxTouchPoints || 'ontouchstart' in document.documentElement);
 }
 
 export {
@@ -547,4 +562,6 @@ export {
     LineTo,
     BeginClip,
     EndClip,
-}
+    ResetDrawTextCache,
+    IsTouchDevice
+};

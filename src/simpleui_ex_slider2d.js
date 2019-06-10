@@ -3,8 +3,8 @@ import * as uidraw from './simpleui_drawing.js';
 import * as consts from './simpleui_consts.js';
 
 const _none = consts._none;
-const _vertical = consts._vertical;
-const _horizontal = consts._horizontal;
+//const _vertical = consts._vertical;
+//const _horizontal = consts._horizontal;
 
 const RectangleP = ui.RectangleP;
 const ColorP = ui.ColorP;
@@ -47,7 +47,7 @@ function do_slider2d(uiid, local_rect, min, max, point_value) {
         ui.add_hotspot(bg_uiid, rect);
 
         // draw grid
-        const stroke_color = make_css_color(ColorP(255, 255, 255, 100));
+        const stroke_color = ui.make_css_color(ColorP(255, 255, 255, 100));
         uidraw.push_strokestyle(stroke_color);
         uidraw.line(layout.x + 1, layout.y + rect_h_half, layout.x + rect.w - 1, layout.y + rect_h_half);
         uidraw.line(layout.x + rect_w_half, layout.y + 1, layout.x + rect_w_half, layout.y + rect.h - 1);

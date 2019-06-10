@@ -25,7 +25,7 @@ function do_scroll_begin(uiid, local_rect, row_height, item_count) {
             'item_count': 0 | item_count,
             'mod': null,
         });
-    };
+    }
 
     ui.layout_push(_none);
     
@@ -93,7 +93,7 @@ function do_scroll_end(uiid) {
     ui.layout_increment(rect);
 
     if (debug) {
-        uidraw.rectangle_outline(rect, ColorP(255,0,0,255));
+        uidraw.rectangle_outline(rect, ui.ColorP(255,0,0,255));
     }
 }
 
@@ -119,8 +119,8 @@ function do_scroll_item_end(scroll_uiid) {
     // debug draws
     if (false) {
         const scroll = ui.get_state(scroll_uiid);
-        uidraw.rectangle(RectangleP(scroll.rect.x, scroll.widget_y1, 200, 2), ColorP(51, 102, 102, 200));
-        uidraw.rectangle(RectangleP(scroll.rect.x, scroll.widget_y2 - 1, 200, 1), ColorP(102, 0, 0, 200));
+        uidraw.rectangle(RectangleP(scroll.rect.x, scroll.widget_y1, 200, 2), ui.ColorP(51, 102, 102, 200));
+        uidraw.rectangle(RectangleP(scroll.rect.x, scroll.widget_y2 - 1, 200, 1), ui.ColorP(102, 0, 0, 200));
     }
 }
 

@@ -4,8 +4,8 @@ import * as uidraw from './simpleui_drawing.js';
 import * as consts from './simpleui_consts.js';
 
 const _none = consts._none;
-const _vertical = consts._vertical;
-const _horizontal = consts._horizontal;
+//const _vertical = consts._vertical;
+//const _horizontal = consts._horizontal;
 
 const RectangleP = ui.RectangleP;
 const ColorP = ui.ColorP;
@@ -94,7 +94,7 @@ function do_gradient_stroke_edit(uiid, min, max, x1, y1, x2, y2) {
             result_y1 = 0 | Math.min(max_y, Math.max(min_y, _.y1 + min_y));
         }
 
-        const uiid_pt2 = uiid + '-pt2'
+        const uiid_pt2 = uiid + '-pt2';
         _ = ui.reticle(uiid_pt2, handle2_rect, p2_x, p2_y);
         if (_.changed) {
             changed = 0 | changed | _.changed;
