@@ -241,12 +241,13 @@ function do_sidepanel() {
             ui.layout_pop();
         }
 
-        // padding
+        // padding (lost this feature when modularized due to namespace/scope boundaries, might fix one day)
+        /*
         sidelabel('padding');
         _ = ui.slider('sidepanel-padding-slider', RectangleP(0, 0, 100, 20), 0, 12, app.panel_layout_padding, '');
         if (_.changed) {
             app.panel_layout_padding = _.value;
-        }
+        }*/
 
         // cpu (not reasonably possible in js)
 

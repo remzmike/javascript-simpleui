@@ -96,6 +96,11 @@ function get_tone_volume() {
     return final_volume;
 }
 
+function set_tempo_index(value) {
+    _trix_panel.tempo_index = value;
+    _trix_panel.wait = _trix_panel.tempo[_trix_panel.tempo_index];
+}
+
 function start_tone() {
     //console.log('[start_tone]');
     const frequency = _tone_panel.tone_point.x;
@@ -147,7 +152,7 @@ function sample_tone_analyser() {
 }
 
 function sample_trix_analyser() {
-    _trix_panel.analyser.getByteFrequencyData(_trix_panel.analyser_freqs);
+    _trix_panel.analyser.getByteFrequencyData(_trix_panel.analyser_freqs);    
     _trix_panel.analyser.getByteTimeDomainData(_trix_panel.analyser_times);
 }
 
@@ -165,6 +170,7 @@ function do_analyser_graph(uiid, local_rect, data1, data2, color1, color2) {
         return;
     }
 
+    uidraw.push_linewidth(1);
     uidraw.begin_path();
     uidraw.push_strokestyle(make_css_color(color1));
     let irange = data1.length;
@@ -173,11 +179,12 @@ function do_analyser_graph(uiid, local_rect, data1, data2, color1, color2) {
         const v = 0 | data1[i];
         const xpos = 0 | (i / irange) * w;
         const ypos = 0 | (v / vrange) * h;
-        uidraw.move_to(0 | x + xpos, 0 | y + h + 1);
+        uidraw.move_to(0 | x + xpos, 0 | y + h);
         uidraw.line_to(0 | x + xpos, 0 | y + h - ypos);
     }
     uidraw.pop_strokestyle();
     uidraw.stroke();
+    uidraw.pop_linewidth();
 
     uidraw.push_linewidth(2);
     uidraw.begin_path();
@@ -280,7 +287,8 @@ function do_tone_panel(uiid, first_x, first_y, first_visible, first_expanded) {
         } else {
             _ = ui.button(uiid + '-button-yodel', 'play yodel mp3', Rectangle(0, 0, 200, 24));
             if (_tone_panel.play_pending || _.clicked) {
-                play(_tone_panel.source1);
+                //play(_tone_panel.source1);
+                play();
             }
         }
 
@@ -446,7 +454,7 @@ const MAX_TEMPO = 0.04;
 for (let i = 0; i < 16; i++) {
     _trix_panel.tempo[i] = MIN_TEMPO - i * ((MIN_TEMPO - MAX_TEMPO) / 16);
 }
-_trix_panel.wait = _trix_panel.tempo[_trix_panel.tempo_index];
+set_tempo_index(_trix_panel.tempo_index);
 
 /*
 > dbfs_to_gain(100)
@@ -676,6 +684,16 @@ function do_preset_buttons() {
             load_preset_e();
         }
 
+        _ = ui.button(uiid + 'button-f', 'f', Rectangle(0, 0, 40, 24))
+        if (_.clicked) {
+            load_preset_f();
+        }
+
+        _ = ui.button(uiid + 'button-g', 'g', Rectangle(0, 0, 40, 24))
+        if (_.clicked) {
+            load_preset_g();
+        }
+
         ui.label('presets', Rectangle(4, 0, 100, 24));
     }
     ui.layout_pop();
@@ -808,8 +826,7 @@ function do_trix_panel(uiid, first_x, first_y, first_visible, first_expanded) {
                 ui.label('tempo', Rectangle(0, 0, 200, dim));
                 _ = ui.slider(uiid + '-slider-tempo', Rectangle(0, 0, 200, 20), 0, _trix_panel.tempo.length - 1, _trix_panel.tempo_index, '');
                 if (_.changed) {
-                    _trix_panel.tempo_index = _.value;
-                    _trix_panel.wait = _trix_panel.tempo[_trix_panel.tempo_index];
+                    set_tempo_index(_.value);
                 }
                 ui.label('scale', Rectangle(0, 0, 200, dim));
                 ui.layout_push(_horizontal, -1);
@@ -836,12 +853,13 @@ function do_trix_panel(uiid, first_x, first_y, first_visible, first_expanded) {
         ui.layout_increment2(0, 20);
 
         // analyser graph        
+        //const graph_w = 512;
         const graph_w = dim * 16 * 2 + 20;
         const graph_h = 100;
         sample_trix_analyser();
         uidraw.rectangle(ui.layout_translated(Rectangle(0, 0, graph_w, graph_h)), uidraw.normal_back);
         do_analyser_graph(uiid - '-analyser-graph', Rectangle(0, 0, graph_w, graph_h), _trix_panel.analyser_freqs, _trix_panel.analyser_times);
-
+        
         ui.layout_increment2(0, 20);
 
         ui.layout_push(_horizontal);
@@ -1349,7 +1367,7 @@ function do_app_audio() {
             _tone_panel.context = new AudioContext();
             _tone_panel.gain1 = _tone_panel.context.createGain();
             _tone_panel.analyser1 = _tone_panel.context.createAnalyser();
-            _tone_panel.analyser1.fftSize = 2 ** 9;
+            _tone_panel.analyser1.fftSize = 512;
             _tone_panel.analyser1_times = new Uint8Array(_tone_panel.analyser1.frequencyBinCount);
             _tone_panel.analyser1_freqs = new Uint8Array(_tone_panel.analyser1.frequencyBinCount);
 
@@ -1359,7 +1377,7 @@ function do_app_audio() {
             _trix_panel.gain.gain.value = volume_to_gain(_trix_panel.volume);
             _trix_panel.compressor = _trix_panel.context.createDynamicsCompressor();
             _trix_panel.analyser = _trix_panel.context.createAnalyser();
-            _trix_panel.analyser.fftSize = 2 ** 9;
+            _trix_panel.analyser.fftSize = 256;
             _trix_panel.analyser_times = new Uint8Array(_trix_panel.analyser.frequencyBinCount);
             _trix_panel.analyser_freqs = new Uint8Array(_trix_panel.analyser.frequencyBinCount);
 
@@ -1443,6 +1461,9 @@ function load_preset_a() { // 'canyouguyssoulslide'
     const _bass = {"volume":80,"detune":0,"convolver_enabled":0,"biquad_type_index":0,"biquad_enabled":0,"shaper_oversample_index":0,"shaper_enabled":0};
     Object.assign(_trix_panel.bass, _bass);
 
+    _trix_panel.misc_volume = 80;
+    set_tempo_index(8);
+
     instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
     instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);
     instrument_set_volume(_trix_panel.bass, _trix_panel.bass.volume);
@@ -1470,6 +1491,9 @@ function load_preset_b() { // 'idontknowhowtocode'
     Object.assign(_trix_panel.piano, _piano);
     const _bass = { "volume": 70, "detune": 0, "convolver_enabled": 1, "biquad_type_index": 0, "biquad_enabled": 0, "shaper_oversample_index": 0, "shaper_enabled": 0 };
     Object.assign(_trix_panel.bass, _bass);
+
+    _trix_panel.misc_volume = 80;
+    set_tempo_index(8);
 
     instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
     instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);
@@ -1499,6 +1523,9 @@ function load_preset_c() { // 'washedupoxygenthief'
     const _bass = {"volume":80,"detune":0,"convolver_enabled":0,"biquad_type_index":3,"biquad_enabled":1,"shaper_oversample_index":0,"shaper_enabled":0}
     Object.assign(_trix_panel.bass, _bass);
 
+    _trix_panel.misc_volume = 80;
+    set_tempo_index(8);
+
     instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
     instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);
     instrument_set_volume(_trix_panel.bass, _trix_panel.bass.volume);
@@ -1524,6 +1551,9 @@ function load_preset_d() {
     const _bass = {"volume":100,"detune":0,"convolver_enabled":0,"biquad_type_index":0,"biquad_enabled":0,"shaper_oversample_index":0,"shaper_enabled":0}
     Object.assign(_trix_panel.bass, _bass);
 
+    _trix_panel.misc_volume = 80;
+    set_tempo_index(8);
+
     instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
     instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);
     instrument_set_volume(_trix_panel.bass, _trix_panel.bass.volume);
@@ -1537,12 +1567,6 @@ function load_preset_e() {
     _trix_panel.bass_grid = [[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]];
     _trix_panel.misc_grid = [[1,0,0,0],[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1],[0,0,1,0],[1,0,0,0],[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1],[0,0,1,0]];
 
-    _trix_panel.piano.biquad.frequency.value = 1000;
-    _trix_panel.piano.biquad.detune.value = -444;
-    _trix_panel.piano.biquad.gain.value = 10;
-    _trix_panel.piano.biquad.Q.value = 10;
-
-    // lodash or something has a function for nested property sets iirc
     _trix_panel.piano.biquad.frequency.value = 3320;
     _trix_panel.piano.biquad.detune.value = 480;
     _trix_panel.piano.biquad.Q.value = 33;
@@ -1559,10 +1583,57 @@ function load_preset_e() {
     Object.assign(_trix_panel.bass, _bass);
     
     _trix_panel.misc_volume = 100;
+    set_tempo_index(8);
     /*const _misc = {
         volume: 100, biquad_type_index: 0, shaper_oversample_index: 2, convolver_enabled: 0, biquad_enabled: 0,
         row_sample_keys: ['kick.ogg', 'snare.ogg', 'hat.ogg', 'ride.ogg']
     }*/
+
+    instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
+    instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);
+    instrument_set_volume(_trix_panel.bass, _trix_panel.bass.volume);
+    instrument_set_biquad_type(_trix_panel.bass, _trix_panel.bass.biquad_type_index);
+
+    reconnect_instruments();    
+}
+
+function load_preset_f() {
+    _trix_panel.piano_grid = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];  
+    _trix_panel.bass_grid = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
+    _trix_panel.misc_grid = [[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+
+    const _piano = { "volume": 60, "detune": 0, "convolver_enabled": 1, "biquad_type_index": 4, "biquad_enabled": 0, "shaper_oversample_index": 0, "shaper_enabled": 0 };
+    Object.assign(_trix_panel.piano, _piano);
+    const _bass = { "volume": 100, "detune": 0, "convolver_enabled": 0, "biquad_type_index": 0, "biquad_enabled": 0, "shaper_oversample_index": 0, "shaper_enabled": 0 };
+    Object.assign(_trix_panel.bass, _bass);
+    
+    _trix_panel.misc_volume = 100;
+    set_tempo_index(15);
+    /*const _misc = {
+        volume: 100, biquad_type_index: 0, shaper_oversample_index: 2, convolver_enabled: 0, biquad_enabled: 0,
+        row_sample_keys: ['kick.ogg', 'snare.ogg', 'hat.ogg', 'ride.ogg']
+    }*/
+
+    instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
+    instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);
+    instrument_set_volume(_trix_panel.bass, _trix_panel.bass.volume);
+    instrument_set_biquad_type(_trix_panel.bass, _trix_panel.bass.biquad_type_index);
+
+    reconnect_instruments();    
+}
+
+function load_preset_g() { // eazydoesit
+    _trix_panel.piano_grid = [[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];  
+    _trix_panel.bass_grid = [[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0]];
+    _trix_panel.misc_grid = [[0,0,0,0],[1,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]];
+
+    const _piano = { "volume": 70, "detune": 0, "convolver_enabled": 0, "biquad_type_index": 3, "biquad_enabled": 0, "shaper_oversample_index": 0, "shaper_enabled": 1 };
+    Object.assign(_trix_panel.piano, _piano);
+    const _bass = { "volume": 100, "detune": 0, "convolver_enabled": 0, "biquad_type_index": 0, "biquad_enabled": 0, "shaper_oversample_index": 0, "shaper_enabled": 1 };
+    Object.assign(_trix_panel.bass, _bass);
+    
+    _trix_panel.misc_volume = 100;
+    set_tempo_index(7);
 
     instrument_set_volume(_trix_panel.piano, _trix_panel.piano.volume);
     instrument_set_biquad_type(_trix_panel.piano, _trix_panel.piano.biquad_type_index);

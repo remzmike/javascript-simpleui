@@ -1,3 +1,4 @@
+// this driver is outdated
 import * as ui from './simpleui.js';
 import * as consts from './simpleui_consts.js';
 import { parseBMFontAscii } from './bmfont.js';
