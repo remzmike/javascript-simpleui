@@ -858,7 +858,7 @@ function do_trix_panel(uiid, first_x, first_y, first_visible, first_expanded) {
         const graph_h = 100;
         sample_trix_analyser();
         uidraw.rectangle(ui.layout_translated(Rectangle(0, 0, graph_w, graph_h)), uidraw.normal_back);
-        do_analyser_graph(uiid - '-analyser-graph', Rectangle(0, 0, graph_w, graph_h), _trix_panel.analyser_freqs, _trix_panel.analyser_times);
+        do_analyser_graph(uiid - '-analyser-graph', Rectangle(2, 0, graph_w, graph_h), _trix_panel.analyser_freqs, _trix_panel.analyser_times);
         
         ui.layout_increment2(0, 20);
 
