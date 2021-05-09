@@ -1581,7 +1581,7 @@ function load_preset_e() {
     _trix_panel.bass.biquad.Q.value = 1;
     _trix_panel.bass.biquad.gain.value = 0;    
 
-    const _piano = { "volume": 10, "detune": 12, "convolver_enabled": 1, "biquad_type_index": 3, "biquad_enabled": 1, "shaper_oversample_index": 2, "shaper_enabled": 1 };
+    const _piano = { "volume": 15, "detune": 12, "convolver_enabled": 1, "biquad_type_index": 3, "biquad_enabled": 1, "shaper_oversample_index": 2, "shaper_enabled": 1 };
     Object.assign(_trix_panel.piano, _piano);
     const _bass = { "volume": 100, "detune": 0, "convolver_enabled": 0, "biquad_type_index": 0, "biquad_enabled": 1, "shaper_oversample_index": 0, "shaper_enabled": 0 };
     Object.assign(_trix_panel.bass, _bass);
