@@ -10,6 +10,7 @@ import { do_slider2d } from './simpleui_ex_slider2d.js';
 import { do_app_demo, do_background_anim, do_sidepanel } from './simpleui_app_demo.js';
 import { do_app_audio } from './simpleui_app_audio1.js';
 import { do_app_audio2 } from './simpleui_app_audio2.js';
+import { do_app_plasma } from './simpleui_app_plasma.js';
 
 export {
     m_simpleui,
@@ -22,6 +23,7 @@ export {
     do_linestar_edit,
     do_slider2d,
     do_app_demo, do_background_anim, do_sidepanel,
-    do_app_audio,    
-    do_app_audio2,    
+    do_app_audio,
+    do_app_audio2,
+    do_app_plasma
 };
